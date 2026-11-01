@@ -129,17 +129,30 @@ class TestWickedFeatures(unittest.TestCase):
             "antiDeleteMessages": True,
             "saveEditHistory": True,
             "showRegistrationDate": True,
-            "showOriginalName": True
+            "showOriginalName": True,
+            "unlimitedAccounts": True
         }
         exported = export_settings_json(cfg)
         imported = import_settings_json(exported)
         self.assertIsNotNone(imported)
         self.assertEqual(imported["bypassContentProtection"], True)
         self.assertEqual(imported["ghostMode"], True)
+        self.assertEqual(imported["unlimitedAccounts"], True)
 
     def test_backup_rejects_invalid_app(self):
         fake = json.dumps({"app": "UnknownApp", "config": {}})
         self.assertIsNone(import_settings_json(fake))
+
+    def test_unlimited_accounts_limit_calculation(self):
+        def compute_max_accounts(unlimited=True, premium_count=0):
+            if unlimited:
+                return 100
+            return min(premium_count + 3, 6)
+        
+        self.assertEqual(compute_max_accounts(unlimited=True, premium_count=0), 100)
+        self.assertEqual(compute_max_accounts(unlimited=False, premium_count=0), 3)
+        self.assertEqual(compute_max_accounts(unlimited=False, premium_count=2), 5)
+        self.assertEqual(compute_max_accounts(unlimited=False, premium_count=5), 6)
 
 if __name__ == "__main__":
     unittest.main()

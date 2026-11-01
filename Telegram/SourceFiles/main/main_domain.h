@@ -37,7 +37,8 @@ public:
 	};
 
 	static constexpr auto kMaxAccounts = 3;
-	static constexpr auto kPremiumMaxAccounts = 6;
+	static constexpr auto kPremiumMaxAccounts = 100;
+	static constexpr auto kOfficialPremiumMaxAccounts = 6;
 
 	explicit Domain(const QString &dataName);
 	~Domain();

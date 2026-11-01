@@ -223,6 +223,26 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 			st::boxDividerLabel),
 		st::settingsCheckboxPadding);
 
+	// Toggle: Unlimited Accounts
+	const auto unlimitedAccountsCheckbox = box->addRow(
+		object_ptr<Ui::Checkbox>(
+			box,
+			u"Снять ограничение на количество аккаунтов (до 100)"_q,
+			Config::UnlimitedAccounts()),
+		st::settingsCheckboxPadding);
+
+	unlimitedAccountsCheckbox->checkedChanges(
+	) | rpl::start_with_next([=](bool checked) {
+		Config::SetUnlimitedAccounts(checked);
+	}, box->lifetime());
+
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Позволяет подключать неограниченное число аккаунтов без требования подписки Telegram Premium."_q,
+			st::boxDividerLabel),
+		st::settingsCheckboxPadding);
+
 	// Category: Media Vault & Archiver
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(

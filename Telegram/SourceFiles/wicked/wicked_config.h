@@ -54,6 +54,10 @@ public:
 	[[nodiscard]] static rpl::producer<bool> ShowOriginalNameValue();
 	static void SetShowOriginalName(bool enabled);
 
+	[[nodiscard]] static bool UnlimitedAccounts();
+	[[nodiscard]] static rpl::producer<bool> UnlimitedAccountsValue();
+	static void SetUnlimitedAccounts(bool enabled);
+
 	[[nodiscard]] static QString FixSocialLinks(QString text);
 	[[nodiscard]] static bool IsCustomBadgeUser(uint64 userId);
 
@@ -79,6 +83,7 @@ private:
 	rpl::variable<bool> _customBadgesEnabled = true;
 	rpl::variable<bool> _showRegistrationDate = true;
 	rpl::variable<bool> _showOriginalName = true;
+	rpl::variable<bool> _unlimitedAccounts = true;
 
 	bool _loaded = false;
 };

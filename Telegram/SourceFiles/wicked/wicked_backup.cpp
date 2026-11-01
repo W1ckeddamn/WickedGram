@@ -40,6 +40,7 @@ QString BackupManager::ExportBackup(const QString &targetFilePath) {
 	configObj.insert("customBadgesEnabled", Config::CustomBadgesEnabled());
 	configObj.insert("showRegistrationDate", Config::ShowRegistrationDate());
 	configObj.insert("showOriginalName", Config::ShowOriginalName());
+	configObj.insert("unlimitedAccounts", Config::UnlimitedAccounts());
 
 	QJsonObject root;
 	root.insert("app", "WickedGram");
@@ -115,6 +116,9 @@ bool BackupManager::ImportBackup(const QString &filePath) {
 	}
 	if (configObj.contains("showOriginalName")) {
 		Config::SetShowOriginalName(configObj.value("showOriginalName").toBool());
+	}
+	if (configObj.contains("unlimitedAccounts")) {
+		Config::SetUnlimitedAccounts(configObj.value("unlimitedAccounts").toBool());
 	}
 
 	return true;

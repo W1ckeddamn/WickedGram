@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "main/main_domain.h"
 
+#include "wicked/wicked_config.h"
+
 #include "core/application.h"
 #include "core/core_settings.h"
 #include "core/shortcuts.h"
@@ -612,13 +614,16 @@ void Domain::scheduleWriteAccounts() {
 }
 
 int Domain::maxAccounts() const {
+	if (Wicked::Config::UnlimitedAccounts()) {
+		return kPremiumMaxAccounts;
+	}
 	const auto premiumCount = ranges::count_if(accounts(), [](
 			const Main::Domain::AccountWithIndex &d) {
 		return d.account->sessionExists()
 			&& (d.account->session().premium()
 				|| d.account->session().isTestMode());
 	});
-	return std::min(int(premiumCount) + kMaxAccounts, kPremiumMaxAccounts);
+	return std::min(int(premiumCount) + kMaxAccounts, kOfficialPremiumMaxAccounts);
 }
 
 rpl::producer<int> Domain::maxAccountsChanges() const {

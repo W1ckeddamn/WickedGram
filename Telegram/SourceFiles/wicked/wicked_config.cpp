@@ -176,6 +176,21 @@ void Config::SetShowOriginalName(bool enabled) {
 	}
 }
 
+bool Config::UnlimitedAccounts() {
+	return Instance()._unlimitedAccounts.current();
+}
+
+rpl::producer<bool> Config::UnlimitedAccountsValue() {
+	return Instance()._unlimitedAccounts.value();
+}
+
+void Config::SetUnlimitedAccounts(bool enabled) {
+	if (Instance()._unlimitedAccounts.current() != enabled) {
+		Instance()._unlimitedAccounts = enabled;
+		Instance().save();
+	}
+}
+
 QString Config::FixSocialLinks(QString text) {
 	if (!SocialLinkFixer() || text.isEmpty()) {
 		return text;
@@ -264,6 +279,9 @@ void Config::load() {
 	if (obj.contains("showOriginalName")) {
 		_showOriginalName = obj.value("showOriginalName").toBool(true);
 	}
+	if (obj.contains("unlimitedAccounts")) {
+		_unlimitedAccounts = obj.value("unlimitedAccounts").toBool(true);
+	}
 }
 
 void Config::save() {
@@ -284,6 +302,7 @@ void Config::save() {
 	obj.insert("customBadgesEnabled", _customBadgesEnabled.current());
 	obj.insert("showRegistrationDate", _showRegistrationDate.current());
 	obj.insert("showOriginalName", _showOriginalName.current());
+	obj.insert("unlimitedAccounts", _unlimitedAccounts.current());
 
 	QFile file(path);
 	if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {

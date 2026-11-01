@@ -1068,7 +1068,7 @@ void AccountsLimitBox(
 		not_null<Ui::GenericBox*> box,
 		not_null<Main::Session*> session) {
 	const auto defaultLimit = Main::Domain::kMaxAccounts;
-	const auto premiumLimit = Main::Domain::kPremiumMaxAccounts;
+	const auto premiumLimit = Main::Domain::kOfficialPremiumMaxAccounts;
 
 	using Args = Ui::Premium::AccountsRowArgs;
 	const auto accounts = session->domain().orderedAccounts();
