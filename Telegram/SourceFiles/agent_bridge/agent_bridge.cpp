@@ -26,6 +26,11 @@ an open-source fork of Telegram Desktop.
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
 
+#include "wicked/wicked_regdate.h"
+#include "wicked/wicked_realname.h"
+#include "wicked/wicked_backup.h"
+#include "wicked/wicked_chat_exporter.h"
+
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonObject>
 #include <QtCore/QRegularExpression>
@@ -71,6 +76,12 @@ QJsonObject PeerToJson(not_null<PeerData*> peer, History *history) {
 			obj["last_name"] = user->lastName;
 			obj["phone"] = user->phone();
 			obj["is_bot"] = user->isBot();
+			const auto rawUserId = peer->id.value & PeerId::kChatTypeMask;
+			obj["registration_date"] = Wicked::RegDate::FormatRegistrationDate(rawUserId);
+			const auto origName = Wicked::RealNameCache::Instance().getOriginalName(rawUserId);
+			if (!origName.isEmpty()) {
+				obj["original_name"] = origName;
+			}
 		}
 	} else if (peer->isChannel()) {
 		obj["type"] = (peer->asChannel() && peer->asChannel()->isBroadcast())
@@ -196,6 +207,63 @@ HttpResponse Bridge::handleRequest(const HttpRequest &req) {
 			return HttpResponse::Error(405, u"Method Not Allowed: use POST"_q);
 		}
 		return handleOpenChat(req);
+	} else if (req.path == u"/api/user/regdate"_q) {
+		if (req.method != u"GET"_q) {
+			return HttpResponse::Error(405, u"Method Not Allowed: use GET"_q);
+		}
+		const auto userIt = req.query.find(u"user_id"_q);
+		if (userIt == req.query.end()) {
+			return HttpResponse::Error(400, u"Missing user_id query parameter"_q);
+		}
+		bool ok = false;
+		const auto uid = userIt->second.toULongLong(&ok);
+		if (!ok || uid == 0) {
+			return HttpResponse::Error(400, u"Invalid user_id"_q);
+		}
+		const auto rawUserId = uid & PeerId::kChatTypeMask;
+		const auto ts = Wicked::RegDate::EstimateTimestamp(rawUserId);
+		const auto formatted = Wicked::RegDate::FormatRegistrationDate(rawUserId);
+		QJsonObject res;
+		res["status"] = "ok";
+		res["user_id"] = QString::number(uid);
+		res["timestamp"] = qint64(ts);
+		res["registration_date"] = formatted;
+		return HttpResponse::Json(200, res);
+	} else if (req.path == u"/api/settings/backup/export"_q) {
+		if (req.method != u"POST"_q) {
+			return HttpResponse::Error(405, u"Method Not Allowed: use POST"_q);
+		}
+		const auto path = Wicked::BackupManager::ExportBackup();
+		if (path.isEmpty()) {
+			return HttpResponse::Error(500, u"Failed to export backup"_q);
+		}
+		QJsonObject res;
+		res["status"] = "ok";
+		res["backup_path"] = path;
+		return HttpResponse::Json(200, res);
+	} else if (req.path == u"/api/settings/backup/import"_q) {
+		if (req.method != u"POST"_q) {
+			return HttpResponse::Error(405, u"Method Not Allowed: use POST"_q);
+		}
+		const auto doc = QJsonDocument::fromJson(req.body);
+		QString path;
+		if (doc.isObject()) {
+			path = doc.object().value("file_path").toString();
+		}
+		if (path.isEmpty()) {
+			QDir dir(Wicked::BackupManager::DefaultBackupDirectory());
+			const auto list = dir.entryInfoList(QStringList() << u"*.json"_q, QDir::Files, QDir::Time);
+			if (!list.isEmpty()) {
+				path = list.first().absoluteFilePath();
+			}
+		}
+		if (path.isEmpty() || !Wicked::BackupManager::ImportBackup(path)) {
+			return HttpResponse::Error(400, u"Failed to import backup from: " + path);
+		}
+		QJsonObject res;
+		res["status"] = "ok";
+		res["imported_from"] = path;
+		return HttpResponse::Json(200, res);
 	}
 
 	// Route /api/chats/{chat_id}(/(messages|read|typing))?

@@ -146,6 +146,36 @@ void Config::SetCustomBadgesEnabled(bool enabled) {
 	}
 }
 
+bool Config::ShowRegistrationDate() {
+	return Instance()._showRegistrationDate.current();
+}
+
+rpl::producer<bool> Config::ShowRegistrationDateValue() {
+	return Instance()._showRegistrationDate.value();
+}
+
+void Config::SetShowRegistrationDate(bool enabled) {
+	if (Instance()._showRegistrationDate.current() != enabled) {
+		Instance()._showRegistrationDate = enabled;
+		Instance().save();
+	}
+}
+
+bool Config::ShowOriginalName() {
+	return Instance()._showOriginalName.current();
+}
+
+rpl::producer<bool> Config::ShowOriginalNameValue() {
+	return Instance()._showOriginalName.value();
+}
+
+void Config::SetShowOriginalName(bool enabled) {
+	if (Instance()._showOriginalName.current() != enabled) {
+		Instance()._showOriginalName = enabled;
+		Instance().save();
+	}
+}
+
 QString Config::FixSocialLinks(QString text) {
 	if (!SocialLinkFixer() || text.isEmpty()) {
 		return text;
@@ -228,6 +258,12 @@ void Config::load() {
 	if (obj.contains("customBadgesEnabled")) {
 		_customBadgesEnabled = obj.value("customBadgesEnabled").toBool(true);
 	}
+	if (obj.contains("showRegistrationDate")) {
+		_showRegistrationDate = obj.value("showRegistrationDate").toBool(true);
+	}
+	if (obj.contains("showOriginalName")) {
+		_showOriginalName = obj.value("showOriginalName").toBool(true);
+	}
 }
 
 void Config::save() {
@@ -246,6 +282,8 @@ void Config::save() {
 	obj.insert("socialLinkFixer", _socialLinkFixer.current());
 	obj.insert("showSecondsInTime", _showSecondsInTime.current());
 	obj.insert("customBadgesEnabled", _customBadgesEnabled.current());
+	obj.insert("showRegistrationDate", _showRegistrationDate.current());
+	obj.insert("showOriginalName", _showOriginalName.current());
 
 	QFile file(path);
 	if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {

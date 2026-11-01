@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/data_user.h"
 
+#include "wicked/wicked_realname.h"
+
 #include "api/api_credits.h"
 #include "api/api_global_privacy.h"
 #include "api/api_sensitive_content.h"
@@ -422,6 +424,7 @@ void UserData::setName(
 		}
 	}
 	const auto newFullName = langFullName(firstName, lastName);
+	Wicked::RealNameCache::Instance().putStranger(peerToUser(id).bare, newFullName);
 	updateNameDelayed(newFullName, newPhoneName, newUsername);
 }
 

@@ -7,6 +7,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "info/profile/info_profile_actions.h"
 
+#include "wicked/wicked_config.h"
+#include "wicked/wicked_regdate.h"
+#include "wicked/wicked_realname.h"
+
 #include "api/api_blocked_peers.h"
 #include "api/api_chat_participants.h"
 #include "api/api_credits.h"
@@ -244,6 +248,33 @@ base::options::toggle ShowChannelJoinedBelowAbout({
 			value.append(Link(
 				Italic(Lang::FormatCountDecimal(raw)),
 				kPeerIdLinkIndex));
+		}
+		if (const auto user = peer->asUser()) {
+			const auto rawUserId = peer->id.value & PeerId::kChatTypeMask;
+			if (Wicked::Config::ShowRegistrationDate()) {
+				const auto regDateStr = Wicked::RegDate::FormatRegistrationDate(rawUserId);
+				if (!regDateStr.isEmpty()) {
+					if (!value.empty()) {
+						if (ShowPeerIdBelowAbout.value()) {
+							value.append("\n");
+						} else {
+							value.append("\n\n");
+						}
+					}
+					using namespace Ui::Text;
+					value.append(Italic(u"📅 Регистрация: "_q + regDateStr));
+				}
+			}
+			if (Wicked::Config::ShowOriginalName()) {
+				const auto origName = Wicked::RealNameCache::Instance().getOriginalName(rawUserId);
+				if (!origName.isEmpty() && origName != user->name()) {
+					if (!value.empty()) {
+						value.append("\n");
+					}
+					using namespace Ui::Text;
+					value.append(Italic(u"👤 Исходное имя: "_q + origName));
+				}
+			}
 		}
 		if (ShowChannelJoinedBelowAbout.value()) {
 			if (const auto channel = peer->asChannel()) {

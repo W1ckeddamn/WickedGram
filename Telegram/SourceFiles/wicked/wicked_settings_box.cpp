@@ -6,6 +6,7 @@ an open-source fork of Telegram Desktop.
 
 #include "wicked/wicked_config.h"
 #include "wicked/wicked_vault.h"
+#include "wicked/wicked_backup.h"
 #include "lang/lang_keys.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/labels.h"
@@ -182,6 +183,46 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		Config::SetCustomBadgesEnabled(checked);
 	}, box->lifetime());
 
+	// Toggle: Registration Date
+	const auto regDateCheckbox = box->addRow(
+		object_ptr<Ui::Checkbox>(
+			box,
+			u"Примерная дата регистрации в профиле"_q,
+			Config::ShowRegistrationDate()),
+		st::settingsCheckboxPadding);
+
+	regDateCheckbox->checkedChanges(
+	) | rpl::start_with_next([=](bool checked) {
+		Config::SetShowRegistrationDate(checked);
+	}, box->lifetime());
+
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Показывает оценочную дату регистрации пользователя в Telegram на основе алгоритма интерполяции ID."_q,
+			st::boxDividerLabel),
+		st::settingsCheckboxPadding);
+
+	// Toggle: Real Name Cache
+	const auto realNameCheckbox = box->addRow(
+		object_ptr<Ui::Checkbox>(
+			box,
+			u"Кэшировать исходные имена пользователей"_q,
+			Config::ShowOriginalName()),
+		st::settingsCheckboxPadding);
+
+	realNameCheckbox->checkedChanges(
+	) | rpl::start_with_next([=](bool checked) {
+		Config::SetShowOriginalName(checked);
+	}, box->lifetime());
+
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Сохраняет изначальные имена пользователей и отображает их, если собеседник сменил имя или был переименован."_q,
+			st::boxDividerLabel),
+		st::settingsCheckboxPadding);
+
 	// Category: Media Vault & Archiver
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
@@ -223,6 +264,58 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		Vault::Clear();
 		vaultStatsLabel->setText(formatStats());
 		Ui::Toast::Show(u"Хранилище медиа очищено"_q);
+	});
+
+	// Category: Backup & Restore
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Резервное копирование (Backup & Restore)"_q,
+			st::boxLabel),
+		st::settingsCheckboxPadding);
+
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Позволяет экспортировать все настройки WickedGram в переносимый JSON-файл и восстанавливать их на любом ПК."_q,
+			st::boxDividerLabel),
+		st::settingsCheckboxPadding);
+
+	const auto exportBackupBtn = box->addRow(
+		object_ptr<Ui::RoundButton>(
+			box,
+			rpl::single(u"Экспортировать настройки в файл"_q),
+			st::defaultBoxButton),
+		st::settingsCheckboxPadding);
+
+	exportBackupBtn->setClickedCallback([=] {
+		const auto path = BackupManager::ExportBackup();
+		if (!path.isEmpty()) {
+			Ui::Toast::Show(u"Настройки экспортированы в tdata/backups/"_q);
+		} else {
+			Ui::Toast::Show(u"Ошибка экспорта настроек"_q);
+		}
+	});
+
+	const auto importBackupBtn = box->addRow(
+		object_ptr<Ui::RoundButton>(
+			box,
+			rpl::single(u"Импортировать настройки из последнего бэкапа"_q),
+			st::defaultBoxButton),
+		st::settingsCheckboxPadding);
+
+	importBackupBtn->setClickedCallback([=] {
+		QDir dir(BackupManager::DefaultBackupDirectory());
+		const auto list = dir.entryInfoList(QStringList() << u"*.json"_q, QDir::Files, QDir::Time);
+		if (list.isEmpty()) {
+			Ui::Toast::Show(u"Файлы резервных копий не найдены"_q);
+			return;
+		}
+		if (BackupManager::ImportBackup(list.first().absoluteFilePath())) {
+			Ui::Toast::Show(u"Настройки успешно восстановлены!"_q);
+		} else {
+			Ui::Toast::Show(u"Не удалось загрузить файл резервной копии"_q);
+		}
 	});
 
 	box->addButton(tr::lng_close(), [=] {

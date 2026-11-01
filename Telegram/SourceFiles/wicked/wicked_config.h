@@ -46,6 +46,14 @@ public:
 	[[nodiscard]] static rpl::producer<bool> CustomBadgesEnabledValue();
 	static void SetCustomBadgesEnabled(bool enabled);
 
+	[[nodiscard]] static bool ShowRegistrationDate();
+	[[nodiscard]] static rpl::producer<bool> ShowRegistrationDateValue();
+	static void SetShowRegistrationDate(bool enabled);
+
+	[[nodiscard]] static bool ShowOriginalName();
+	[[nodiscard]] static rpl::producer<bool> ShowOriginalNameValue();
+	static void SetShowOriginalName(bool enabled);
+
 	[[nodiscard]] static QString FixSocialLinks(QString text);
 	[[nodiscard]] static bool IsCustomBadgeUser(uint64 userId);
 
@@ -69,6 +77,8 @@ private:
 	rpl::variable<bool> _socialLinkFixer = true;
 	rpl::variable<bool> _showSecondsInTime = false;
 	rpl::variable<bool> _customBadgesEnabled = true;
+	rpl::variable<bool> _showRegistrationDate = true;
+	rpl::variable<bool> _showOriginalName = true;
 
 	bool _loaded = false;
 };

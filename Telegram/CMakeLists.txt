@@ -2494,8 +2494,16 @@ PRIVATE
     window/themes/window_themes_generate_name.cpp
     window/themes/window_themes_generate_name.h
 
+    wicked/wicked_backup.cpp
+    wicked/wicked_backup.h
+    wicked/wicked_chat_exporter.cpp
+    wicked/wicked_chat_exporter.h
     wicked/wicked_config.cpp
     wicked/wicked_config.h
+    wicked/wicked_realname.cpp
+    wicked/wicked_realname.h
+    wicked/wicked_regdate.cpp
+    wicked/wicked_regdate.h
     wicked/wicked_settings_box.cpp
     wicked/wicked_settings_box.h
     wicked/wicked_vault.cpp
