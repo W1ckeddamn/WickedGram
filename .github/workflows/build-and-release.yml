@@ -1,0 +1,232 @@
+name: Build and Release WickedGram
+
+on:
+  push:
+    branches:
+      - dev
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - 'changelog.txt'
+      - 'LEGAL'
+      - 'LICENSE'
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build Configuration'
+        required: true
+        default: 'Release'
+        type: choice
+        options:
+          - Release
+          - Debug
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+
+jobs:
+  build-windows:
+    name: Build Windows x64
+    runs-on: windows-2022
+    timeout-minutes: 360
+
+    env:
+      PREPARE_PATH: "Telegram/build/prepare/prepare.py"
+
+    defaults:
+      run:
+        shell: cmd
+
+    steps:
+      - name: Prepare build directories
+        run: |
+          mkdir %userprofile%\TBuild\Libraries
+          mklink /d %GITHUB_WORKSPACE%\TBuild %userprofile%\TBuild
+          echo TBUILD=%GITHUB_WORKSPACE%\TBuild>>%GITHUB_ENV%
+          echo LibrariesPath=%GITHUB_WORKSPACE%\TBuild\Libraries\win64>>%GITHUB_ENV%
+
+      - name: Get repository name
+        shell: bash
+        run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          path: ${{ env.TBUILD }}\${{ env.REPO_NAME }}
+          fetch-depth: 0
+
+      - name: Setup Environment
+        shell: bash
+        run: |
+          DOCPATH=$TBUILD/$REPO_NAME/docs/building-win.md
+          SDK="$(grep "SDK version" $DOCPATH | sed -r 's/.*\*\*(.*)\*\* SDK version.*/\1/')"
+          echo "SDK=$SDK" >> $GITHUB_ENV
+
+          sed -i '/CMAKE_${lang}_FLAGS_DEBUG_INIT/s/${_Zi}//' "$PROGRAMFILES"/CMake/share/cmake*/Modules/Platform/Windows-MSVC.cmake || true
+
+          echo "$(sha256sum $TBUILD/$REPO_NAME/$PREPARE_PATH | awk '{ print $1 }')" >> CACHE_KEY.txt
+          echo "$SDK" >> CACHE_KEY.txt
+          echo "CACHE_KEY=$(sha256sum CACHE_KEY.txt | awk '{ print $1 }')" >> $GITHUB_ENV
+
+          git config --global user.email "ci@wickedgram.local"
+          git config --global user.name "WickedGram CI"
+
+      - name: Setup MSVC Native Tools
+        uses: Eden-CI/msvc-dev-cmd@master
+        with:
+          arch: x64
+          sdk: ${{ env.SDK }}
+          toolset: '14.44'
+
+      - name: Configure NuGet
+        run: |
+          nuget sources Disable -Name "Microsoft Visual Studio Offline Packages"
+          nuget sources Add -Source https://api.nuget.org/v3/index.json & exit 0
+
+      - name: ThirdParty cache
+        id: cache-third-party
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.TBUILD }}\ThirdParty
+          key: ${{ runner.OS }}-${{ runner.arch }}-third-party-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-${{ runner.arch }}-third-party-
+
+      - name: Libraries cache
+        id: cache-libs
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\*
+            !${{ env.LibrariesPath }}\cache_keys
+            !${{ env.LibrariesPath }}\[qQ]t[_-]*
+            ${{ env.LibrariesPath }}\cache_keys\*
+            !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.OS }}-x64-libs-v2-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-x64-libs-v2-
+
+      - name: Qt cache
+        id: cache-qt
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.LibrariesPath }}\[qQ]t[_-]*
+            ${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
+          key: ${{ runner.OS }}-x64-qt-${{ env.CACHE_KEY }}
+          restore-keys: ${{ runner.OS }}-x64-qt-
+
+      - name: Determine Build Configuration
+        id: config
+        shell: bash
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]] || [[ "${{ inputs.build_type }}" == "Release" ]]; then
+            echo "build_config=Release" >> $GITHUB_OUTPUT
+            echo "skip_release=" >> $GITHUB_OUTPUT
+            echo "is_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "build_config=Debug" >> $GITHUB_OUTPUT
+            echo "skip_release=skip-release" >> $GITHUB_OUTPUT
+            echo "is_release=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Prepare Libraries
+        run: |
+          %TBUILD%\%REPO_NAME%\Telegram\build\prepare\win.bat ${{ steps.config.outputs.skip_release }} silent
+
+      - name: Prune library build artifacts for cache quota
+        shell: bash
+        run: |
+          find $LibrariesPath '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -path '*/nv-codec-headers/*' ')' -type f ')' -o -empty ')' -delete
+
+      - name: Configure CMake and Build
+        run: |
+          cd %TBUILD%\%REPO_NAME%\Telegram
+          
+          set "API_CONFIG=-D TDESKTOP_API_ID=611335 -D TDESKTOP_API_HASH=d524b414d21f4d37f08684c1df41ac9c"
+          if not "${{ secrets.TDESKTOP_API_ID }}"=="" (
+            set "API_CONFIG=-D TDESKTOP_API_ID=${{ secrets.TDESKTOP_API_ID }} -D TDESKTOP_API_HASH=${{ secrets.TDESKTOP_API_HASH }}"
+          )
+
+          call configure.bat x64 %API_CONFIG% ^
+            -D CMAKE_CONFIGURATION_TYPES=${{ steps.config.outputs.build_config }} ^
+            -D CMAKE_COMPILE_WARNING_AS_ERROR=OFF ^
+            -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF ^
+            -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF
+
+          cmake --build ..\out --config ${{ steps.config.outputs.build_config }} --parallel
+
+      - name: Package WickedGram
+        id: package
+        shell: bash
+        run: |
+          CONFIG="${{ steps.config.outputs.build_config }}"
+          OUT_DIR="$TBUILD/$REPO_NAME/out/$CONFIG"
+          
+          echo "Checking build output in $OUT_DIR..."
+          if [ ! -f "$OUT_DIR/Telegram.exe" ]; then
+            echo "Error: Telegram.exe not found in $OUT_DIR!" >&2
+            ls -la "$OUT_DIR" || true
+            exit 1
+          fi
+
+          VERSION="${{ github.ref_name }}"
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            DIST_NAME="WickedGram-${VERSION}-Windows-x64"
+          else
+            DIST_NAME="WickedGram-${VERSION}-${SHORT_SHA}-Windows-x64"
+          fi
+
+          DIST_DIR="$GITHUB_WORKSPACE/dist/$DIST_NAME"
+          mkdir -p "$DIST_DIR"
+
+          cp "$OUT_DIR/Telegram.exe" "$DIST_DIR/WickedGram.exe"
+          if [ -f "$OUT_DIR/Updater.exe" ]; then
+            cp "$OUT_DIR/Updater.exe" "$DIST_DIR/Updater.exe"
+          fi
+
+          cd "$GITHUB_WORKSPACE/dist"
+          7z a -tzip "${DIST_NAME}.zip" "$DIST_NAME"/*
+
+          ZIP_PATH="$GITHUB_WORKSPACE/dist/${DIST_NAME}.zip"
+          ZIP_NAME="${DIST_NAME}.zip"
+          SHA256=$(sha256sum "${ZIP_NAME}" | awk '{print $1}')
+
+          echo "zip_path=$ZIP_PATH" >> $GITHUB_OUTPUT
+          echo "zip_name=$ZIP_NAME" >> $GITHUB_OUTPUT
+          echo "sha256=$SHA256" >> $GITHUB_OUTPUT
+
+      - name: Upload Build Artifact
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.zip_name }}
+          path: ${{ steps.package.outputs.zip_path }}
+          retention-days: 14
+
+      - name: Create GitHub Release
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.package.outputs.zip_path }}
+          name: WickedGram ${{ github.ref_name }}
+          body: |
+            ## WickedGram ${{ github.ref_name }}
+            
+            ### Windows (x64)
+            * **Archive:** `${{ steps.package.outputs.zip_name }}`
+            * **SHA-256:** `${{ steps.package.outputs.sha256 }}`
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
