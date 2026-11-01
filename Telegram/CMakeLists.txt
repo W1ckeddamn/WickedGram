@@ -120,6 +120,15 @@ nice_target_sources(Telegram ${src_loc}
 PRIVATE
     ${style_files}
 
+    agent_bridge/agent_bridge.cpp
+    agent_bridge/agent_bridge.h
+    agent_bridge/agent_bridge_box.cpp
+    agent_bridge/agent_bridge_box.h
+    agent_bridge/agent_server.cpp
+    agent_bridge/agent_server.h
+    agent_bridge/agent_settings.cpp
+    agent_bridge/agent_settings.h
+
     api/api_attached_stickers.cpp
     api/api_attached_stickers.h
     api/api_authorizations.cpp

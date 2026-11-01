@@ -48,6 +48,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/localstorage.h"
 #include "storage/storage_domain.h"
 #include "tray.h"
+#include "agent_bridge/agent_bridge_box.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/boxes/single_choice_box.h"
 #include "ui/gl/gl_detection.h"
@@ -1299,6 +1300,16 @@ void BuildExportSection(SectionBuilder &builder) {
 		.icon = { &st::menuIconExperimental },
 		.onClick = [showOther] { showOther(Experimental::Id()); },
 		.keywords = { u"experimental"_q, u"beta"_q, u"features"_q },
+	});
+
+	builder.addButton({
+		.id = u"advanced/agent_bridge"_q,
+		.title = rpl::single(u"WickedGram AI Agent Bridge"_q),
+		.icon = { &st::menuIconBotCommands },
+		.onClick = [=] {
+			controller->show(Box(Agent::BridgeBox));
+		},
+		.keywords = { u"ai"_q, u"agent"_q, u"bridge"_q, u"api"_q, u"bot"_q },
 	});
 }
 

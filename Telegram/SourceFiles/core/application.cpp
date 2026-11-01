@@ -26,6 +26,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/update_checker.h"
 #include "core/shortcuts.h"
 #include "core/sandbox.h"
+#include "agent_bridge/agent_bridge.h"
 #include "core/local_url_handlers.h"
 #include "core/launcher.h"
 #include "core/proxy_rotation_manager.h"
@@ -261,6 +262,7 @@ void Application::closeAdditionalWindows() {
 }
 
 Application::~Application() {
+	Agent::Bridge::Finish();
 	if (_savedWindows) {
 		_savedWindows->writeNow();
 	}
@@ -484,6 +486,7 @@ void Application::run() {
 
 	Test::Fire(u"launch_finished"_q);
 	Test::Start();
+	Agent::Bridge::Start();
 }
 
 void Application::autoRegisterUrlScheme() {
