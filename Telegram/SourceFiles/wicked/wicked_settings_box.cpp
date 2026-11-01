@@ -7,6 +7,8 @@ an open-source fork of Telegram Desktop.
 #include "wicked/wicked_config.h"
 #include "wicked/wicked_vault.h"
 #include "wicked/wicked_backup.h"
+#include "wicked/wicked_network_boost.h"
+#include "base/timer.h"
 #include "lang/lang_keys.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/labels.h"
@@ -14,6 +16,7 @@ an open-source fork of Telegram Desktop.
 #include "ui/toast/toast.h"
 #include "ui/layers/generic_box.h"
 #include "styles/style_boxes.h"
+#include "styles/style_layers.h"
 #include "styles/style_settings.h"
 
 namespace Wicked {
@@ -418,6 +421,144 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		vaultStatsLabel->setText(formatStats());
 		Ui::Toast::Show(u"Хранилище медиа очищено"_q);
 	});
+
+	// Category: Network Boost & Acceleration
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Сеть и ускорение (Network Boost)"_q,
+			st::boxLabel),
+		st::settingsCheckboxPadding);
+
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Многопоточный параллельный акселератор MTProto. Увеличивает количество одновременных соединений и размер буфера для максимальной скорости загрузки и выгрузки файлов."_q,
+			st::boxDividerLabel),
+		st::settingsCheckboxPadding);
+
+	const auto formatSpeedLabel = [] {
+		return QString(u"Текущая скорость: ⬇ %1   ⬆ %2"_q)
+			.arg(NetworkBoost::FormatSpeed(NetworkBoost::DownloadSpeedMBps()))
+			.arg(NetworkBoost::FormatSpeed(NetworkBoost::UploadSpeedMBps()));
+	};
+
+	const auto speedLabel = box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			formatSpeedLabel(),
+			st::boxLabel),
+		st::settingsCheckboxPadding);
+
+	const auto speedTimer = std::make_shared<base::Timer>([=] {
+		speedLabel->setText(formatSpeedLabel());
+	});
+	speedTimer->callEach(1000);
+	box->lifetime().add([speedTimer] {
+		speedTimer->cancel();
+	});
+
+	// Download Boost Group
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Ускорение скачивания (Download Boost):"_q,
+			st::boxLabel),
+		st::settingsCheckboxPadding);
+
+	const auto downloadGroup = std::make_shared<Ui::RadioenumGroup<NetworkBoostMode>>(
+		Config::DownloadBoost());
+	downloadGroup->setChangedCallback([=](NetworkBoostMode value) {
+		Config::SetDownloadBoost(value);
+	});
+
+	box->addRow(
+		object_ptr<Ui::Radioenum<NetworkBoostMode>>(
+			box,
+			downloadGroup,
+			NetworkBoostMode::Off,
+			u"Отключено (Стандарт Telegram, 1-4 потока)"_q,
+			st::defaultBoxCheckbox),
+		st::settingsCheckboxPadding);
+
+	box->addRow(
+		object_ptr<Ui::Radioenum<NetworkBoostMode>>(
+			box,
+			downloadGroup,
+			NetworkBoostMode::Fast,
+			u"Быстрый 2x (Ускоренный старт, до 6-8 потоков)"_q,
+			st::defaultBoxCheckbox),
+		st::settingsCheckboxPadding);
+
+	box->addRow(
+		object_ptr<Ui::Radioenum<NetworkBoostMode>>(
+			box,
+			downloadGroup,
+			NetworkBoostMode::Ultra,
+			u"Ультра 4x (Мгновенные 8 потоков, буфер до 8 МБ)"_q,
+			st::defaultBoxCheckbox),
+		st::settingsCheckboxPadding);
+
+	// Upload Boost Group
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Ускорение выгрузки (Upload Boost):"_q,
+			st::boxLabel),
+		st::settingsCheckboxPadding);
+
+	const auto uploadGroup = std::make_shared<Ui::RadioenumGroup<NetworkBoostMode>>(
+		Config::UploadBoost());
+	uploadGroup->setChangedCallback([=](NetworkBoostMode value) {
+		Config::SetUploadBoost(value);
+	});
+
+	box->addRow(
+		object_ptr<Ui::Radioenum<NetworkBoostMode>>(
+			box,
+			uploadGroup,
+			NetworkBoostMode::Off,
+			u"Отключено (Стандарт Telegram, 1-4 потока)"_q,
+			st::defaultBoxCheckbox),
+		st::settingsCheckboxPadding);
+
+	box->addRow(
+		object_ptr<Ui::Radioenum<NetworkBoostMode>>(
+			box,
+			uploadGroup,
+			NetworkBoostMode::Fast,
+			u"Быстрый 2x (До 6 параллельных потоков выгрузки)"_q,
+			st::defaultBoxCheckbox),
+		st::settingsCheckboxPadding);
+
+	box->addRow(
+		object_ptr<Ui::Radioenum<NetworkBoostMode>>(
+			box,
+			uploadGroup,
+			NetworkBoostMode::Ultra,
+			u"Ультра 4x (До 8 параллельных потоков выгрузки)"_q,
+			st::defaultBoxCheckbox),
+		st::settingsCheckboxPadding);
+
+	// Toggle: Adaptive File Size Aware
+	const auto adaptiveCheckbox = box->addRow(
+		object_ptr<Ui::Checkbox>(
+			box,
+			u"Адаптивный режим по размеру файлов (File Size Aware)"_q,
+			Config::UploadBoostFileSizeAware()),
+		st::settingsCheckboxPadding);
+
+	adaptiveCheckbox->checkedChanges(
+	) | rpl::start_with_next([=](bool checked) {
+		Config::SetUploadBoostFileSizeAware(checked);
+	}, box->lifetime());
+
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Автоматически выбирает стандартную скорость для небольших файлов (<10 МБ) и максимальный разгон 8 потоков для тяжёлых файлов (>100 МБ)."_q,
+			st::boxDividerLabel),
+		st::settingsCheckboxPadding);
 
 	// Category: Backup & Restore
 	box->addRow(

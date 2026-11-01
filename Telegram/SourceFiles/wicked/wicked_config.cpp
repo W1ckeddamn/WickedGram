@@ -327,6 +327,51 @@ void Config::SetLyricsInPlayer(bool enabled) {
 	}
 }
 
+NetworkBoostMode Config::DownloadBoost() {
+	return Instance()._downloadBoost.current();
+}
+
+rpl::producer<NetworkBoostMode> Config::DownloadBoostValue() {
+	return Instance()._downloadBoost.value();
+}
+
+void Config::SetDownloadBoost(NetworkBoostMode mode) {
+	if (Instance()._downloadBoost.current() != mode) {
+		Instance()._downloadBoost = mode;
+		Instance().save();
+	}
+}
+
+NetworkBoostMode Config::UploadBoost() {
+	return Instance()._uploadBoost.current();
+}
+
+rpl::producer<NetworkBoostMode> Config::UploadBoostValue() {
+	return Instance()._uploadBoost.value();
+}
+
+void Config::SetUploadBoost(NetworkBoostMode mode) {
+	if (Instance()._uploadBoost.current() != mode) {
+		Instance()._uploadBoost = mode;
+		Instance().save();
+	}
+}
+
+bool Config::UploadBoostFileSizeAware() {
+	return Instance()._uploadBoostFileSizeAware.current();
+}
+
+rpl::producer<bool> Config::UploadBoostFileSizeAwareValue() {
+	return Instance()._uploadBoostFileSizeAware.value();
+}
+
+void Config::SetUploadBoostFileSizeAware(bool enabled) {
+	if (Instance()._uploadBoostFileSizeAware.current() != enabled) {
+		Instance()._uploadBoostFileSizeAware = enabled;
+		Instance().save();
+	}
+}
+
 QString Config::FixSocialLinks(QString text) {
 	if (!SocialLinkFixer() || text.isEmpty()) {
 		return text;
@@ -543,6 +588,17 @@ void Config::load() {
 	if (obj.contains("lyricsInPlayer")) {
 		_lyricsInPlayer = obj.value("lyricsInPlayer").toBool(true);
 	}
+	if (obj.contains("downloadBoost")) {
+		const auto val = obj.value("downloadBoost").toInt(int(NetworkBoostMode::Fast));
+		_downloadBoost = static_cast<NetworkBoostMode>(std::clamp(val, 0, 2));
+	}
+	if (obj.contains("uploadBoost")) {
+		const auto val = obj.value("uploadBoost").toInt(int(NetworkBoostMode::Fast));
+		_uploadBoost = static_cast<NetworkBoostMode>(std::clamp(val, 0, 2));
+	}
+	if (obj.contains("uploadBoostFileSizeAware")) {
+		_uploadBoostFileSizeAware = obj.value("uploadBoostFileSizeAware").toBool(true);
+	}
 }
 
 void Config::save() {
@@ -573,6 +629,9 @@ void Config::save() {
 	obj.insert("filterZalgo", _filterZalgo.current());
 	obj.insert("cleanUrls", _cleanUrls.current());
 	obj.insert("lyricsInPlayer", _lyricsInPlayer.current());
+	obj.insert("downloadBoost", int(_downloadBoost.current()));
+	obj.insert("uploadBoost", int(_uploadBoost.current()));
+	obj.insert("uploadBoostFileSizeAware", _uploadBoostFileSizeAware.current());
 
 	QFile file(path);
 	if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {

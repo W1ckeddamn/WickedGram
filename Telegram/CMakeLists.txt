@@ -2500,6 +2500,8 @@ PRIVATE
     wicked/wicked_chat_exporter.h
     wicked/wicked_lyrics.cpp
     wicked/wicked_lyrics.h
+    wicked/wicked_network_boost.cpp
+    wicked/wicked_network_boost.h
     wicked/wicked_config.cpp
     wicked/wicked_config.h
     wicked/wicked_realname.cpp

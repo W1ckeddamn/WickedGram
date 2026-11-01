@@ -10,6 +10,12 @@ an open-source fork of Telegram Desktop.
 
 namespace Wicked {
 
+enum class NetworkBoostMode {
+	Off = 0,
+	Fast = 1,
+	Ultra = 2,
+};
+
 class Config final {
 public:
 	static Config &Instance();
@@ -94,6 +100,18 @@ public:
 	[[nodiscard]] static rpl::producer<bool> LyricsInPlayerValue();
 	static void SetLyricsInPlayer(bool enabled);
 
+	[[nodiscard]] static NetworkBoostMode DownloadBoost();
+	[[nodiscard]] static rpl::producer<NetworkBoostMode> DownloadBoostValue();
+	static void SetDownloadBoost(NetworkBoostMode mode);
+
+	[[nodiscard]] static NetworkBoostMode UploadBoost();
+	[[nodiscard]] static rpl::producer<NetworkBoostMode> UploadBoostValue();
+	static void SetUploadBoost(NetworkBoostMode mode);
+
+	[[nodiscard]] static bool UploadBoostFileSizeAware();
+	[[nodiscard]] static rpl::producer<bool> UploadBoostFileSizeAwareValue();
+	static void SetUploadBoostFileSizeAware(bool enabled);
+
 	[[nodiscard]] static QString FixSocialLinks(QString text);
 	[[nodiscard]] static QString CleanUrl(QString url);
 	[[nodiscard]] static QString CleanUrlsInText(QString text);
@@ -132,6 +150,9 @@ private:
 	rpl::variable<bool> _filterZalgo = true;
 	rpl::variable<bool> _cleanUrls = true;
 	rpl::variable<bool> _lyricsInPlayer = true;
+	rpl::variable<NetworkBoostMode> _downloadBoost = NetworkBoostMode::Fast;
+	rpl::variable<NetworkBoostMode> _uploadBoost = NetworkBoostMode::Fast;
+	rpl::variable<bool> _uploadBoostFileSizeAware = true;
 
 	bool _loaded = false;
 };

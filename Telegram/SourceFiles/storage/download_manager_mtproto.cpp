@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "storage/download_manager_mtproto.h"
 
+#include "wicked/wicked_network_boost.h"
+
 #include "mtproto/facade.h"
 #include "mtproto/mtproto_auth_key.h"
 #include "mtproto/mtproto_response.h"
@@ -110,11 +112,11 @@ void DownloadManagerMtproto::Queue::removeSession(int index) {
 }
 
 DownloadManagerMtproto::DcSessionBalanceData::DcSessionBalanceData()
-: maxWaitedAmount(kStartWaitedInSession) {
+: maxWaitedAmount(Wicked::NetworkBoost::InitialDownloadWaitedAmount()) {
 }
 
 DownloadManagerMtproto::DcBalanceData::DcBalanceData()
-: sessions(kStartSessionsCount) {
+: sessions(Wicked::NetworkBoost::InitialDownloadSessionsCount()) {
 }
 
 DownloadManagerMtproto::DownloadManagerMtproto(not_null<ApiWrap*> api)
@@ -184,7 +186,7 @@ bool DownloadManagerMtproto::trySendNextPart(MTP::DcId dcId, Queue &queue) {
 		const auto proj = [](const DcSessionBalanceData &data) {
 			return (data.requested < data.maxWaitedAmount)
 				? data.requested
-				: kMaxWaitedInSession;
+				: Wicked::NetworkBoost::MaxDownloadWaitedAmount();
 		};
 		const auto j = ranges::min_element(sessions, ranges::less(), proj);
 		return (j->requested + kDownloadPartSize <= j->maxWaitedAmount)
@@ -259,11 +261,12 @@ void DownloadManagerMtproto::requestSucceeded(
 		});
 		return;
 	}
+	const auto maxWaited = Wicked::NetworkBoost::MaxDownloadWaitedAmount();
 	if (amountAtRequestStart == data.maxWaitedAmount
-		&& data.maxWaitedAmount < kMaxWaitedInSession) {
+		&& data.maxWaitedAmount < maxWaited) {
 		data.maxWaitedAmount = std::min(
 			data.maxWaitedAmount + kDownloadPartSize,
-			kMaxWaitedInSession);
+			maxWaited);
 		DEBUG_LOG(("Download (%1,%2) increased max waited amount %3."
 			).arg(dcId
 			).arg(index
@@ -322,7 +325,7 @@ void DownloadManagerMtproto::sessionTimedOut(MTP::DcId dcId, int index) {
 	for (auto &session : dc.sessions) {
 		session.successes = 0;
 	}
-	if (dc.sessions.size() == kStartSessionsCount
+	if (dc.sessions.size() <= 1
 		|| ++dc.timeouts < kRemoveSessionAfterTimeouts) {
 		return;
 	}
@@ -332,7 +335,7 @@ void DownloadManagerMtproto::sessionTimedOut(MTP::DcId dcId, int index) {
 
 void DownloadManagerMtproto::removeSession(MTP::DcId dcId) {
 	auto &dc = _balanceData[dcId];
-	Assert(dc.sessions.size() > kStartSessionsCount);
+	Assert(dc.sessions.size() > 1);
 	const auto index = int(dc.sessions.size() - 1);
 	DEBUG_LOG(("Download (%1,%2) removing, now sessions: %3"
 		).arg(dcId
@@ -350,9 +353,10 @@ void DownloadManagerMtproto::removeSession(MTP::DcId dcId) {
 	auto &session = dc.sessions.back();
 
 	// Make sure we don't send anything to that session while redirecting.
-	session.requested += kMaxWaitedInSession * kMaxSessionsCount;
+	const auto sentinel = Wicked::NetworkBoost::MaxDownloadWaitedAmount() * kMaxSessionsCount;
+	session.requested += sentinel;
 	queue.removeSession(index);
-	Assert(session.requested == kMaxWaitedInSession * kMaxSessionsCount);
+	Assert(session.requested == sentinel);
 
 	dc.sessions.pop_back();
 	api().instance().killSession(MTP::downloadDcId(dcId, index));
@@ -923,6 +927,7 @@ bool DownloadMtprotoTask::partLoaded(
 		cancelOnFail();
 		return false;
 	}
+	Wicked::NetworkBoost::TrackBytes(false, bytes.size());
 	return feedPart(offset, bytes);
 }
 

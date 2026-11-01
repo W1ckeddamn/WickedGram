@@ -52,6 +52,9 @@ QString BackupManager::ExportBackup(const QString &destinationPath) {
 	configObj.insert("filterZalgo", Config::FilterZalgo());
 	configObj.insert("cleanUrls", Config::CleanUrls());
 	configObj.insert("lyricsInPlayer", Config::LyricsInPlayer());
+	configObj.insert("downloadBoost", int(Config::DownloadBoost()));
+	configObj.insert("uploadBoost", int(Config::UploadBoost()));
+	configObj.insert("uploadBoostFileSizeAware", Config::UploadBoostFileSizeAware());
 
 	QJsonObject root;
 	root.insert("app", "WickedGram");
@@ -157,6 +160,19 @@ bool BackupManager::ImportBackup(const QString &filePath) {
 	}
 	if (configObj.contains("lyricsInPlayer")) {
 		Config::SetLyricsInPlayer(configObj.value("lyricsInPlayer").toBool());
+	}
+	if (configObj.contains("downloadBoost")) {
+		const auto val = configObj.value("downloadBoost").toInt(int(NetworkBoostMode::Fast));
+		const auto mode = (val == 3) ? NetworkBoostMode::Fast : static_cast<NetworkBoostMode>(std::clamp(val, 0, 2));
+		Config::SetDownloadBoost(mode);
+	}
+	if (configObj.contains("uploadBoost")) {
+		const auto val = configObj.value("uploadBoost").toInt(int(NetworkBoostMode::Fast));
+		const auto mode = (val == 3) ? NetworkBoostMode::Fast : static_cast<NetworkBoostMode>(std::clamp(val, 0, 2));
+		Config::SetUploadBoost(mode);
+	}
+	if (configObj.contains("uploadBoostFileSizeAware")) {
+		Config::SetUploadBoostFileSizeAware(configObj.value("uploadBoostFileSizeAware").toBool(true));
 	}
 
 	return true;

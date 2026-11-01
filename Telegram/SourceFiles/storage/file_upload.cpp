@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "storage/file_upload.h"
 
+#include "wicked/wicked_network_boost.h"
+
 #include "api/api_editing.h"
 #include "api/api_send_progress.h"
 #include "boxes/abstract_box.h"
@@ -689,7 +691,12 @@ QByteArray Uploader::readDocPart(not_null<Entry*> entry) {
 
 bool Uploader::canAddDcIndex() const {
 	const auto count = int(_sentPerDcIndex.size());
-	return (count < kMaxSessionsCount)
+	const auto docSize = _queue.empty() ? int64(0) : _queue.front().docSize;
+	const auto target = Wicked::NetworkBoost::TargetUploadSessionsCount(docSize);
+	if (Wicked::Config::UploadBoost() != Wicked::NetworkBoostMode::Off) {
+		return (count < target);
+	}
+	return (count < target)
 		&& (count == int(_dcIndicesWithFastRequests.size()));
 }
 
@@ -802,7 +809,8 @@ auto Uploader::sendDocPart(not_null<Entry*> entry, uchar dcIndex)
 	const auto itemId = entry->itemId;
 	const auto alreadySent = _sentPerDcIndex[dcIndex];
 	const auto willProbablyBeSent = entry->docPartSize;
-	if (alreadySent + willProbablyBeSent > kMaxUploadPerSession) {
+	const auto maxPerSession = Wicked::NetworkBoost::MaxUploadPerSession(entry->docSize);
+	if (alreadySent + willProbablyBeSent > maxPerSession) {
 		return SendResult::DcIndexFull;
 	}
 
@@ -848,7 +856,8 @@ auto Uploader::sendSlicedPart(not_null<Entry*> entry, uchar dcIndex)
 	const auto itemId = entry->itemId;
 	const auto alreadySent = _sentPerDcIndex[dcIndex];
 	const auto willBeSent = entry->parts->at(entry->partsSent).size();
-	if (alreadySent + willBeSent >= kMaxUploadPerSession) {
+	const auto maxPerSession = Wicked::NetworkBoost::MaxUploadPerSession(entry->docSize);
+	if (alreadySent + willBeSent >= maxPerSession) {
 		return SendResult::DcIndexFull;
 	}
 
@@ -908,7 +917,8 @@ void Uploader::maybeSend() {
 	if (usedDcIndices.empty()) {
 		_nextTimer.cancel();
 	} else {
-		_nextTimer.callOnce(kUploadRequestInterval);
+		const auto docSize = _queue.empty() ? int64(0) : _queue.front().docSize;
+		_nextTimer.callOnce(Wicked::NetworkBoost::UploadRequestInterval(docSize));
 	}
 }
 
@@ -985,6 +995,8 @@ void Uploader::partLoaded(const MTPBool &result, mtpRequestId requestId) {
 
 	const auto bytes = int(request.bytes.size());
 	const auto itemId = request.itemId;
+
+	Wicked::NetworkBoost::TrackBytes(true, bytes);
 
 	if (mtpIsFalse(result)) { // failed to upload current file
 		failed(itemId);

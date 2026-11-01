@@ -12,6 +12,7 @@ an open-source fork of Telegram Desktop.
 #include "ui/widgets/buttons.h"
 #include "ui/toast/toast.h"
 #include "styles/style_boxes.h"
+#include "styles/style_layers.h"
 #include "styles/style_settings.h"
 
 #include <QtNetwork/QNetworkAccessManager>
