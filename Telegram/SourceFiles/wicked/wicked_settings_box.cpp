@@ -5,10 +5,12 @@ an open-source fork of Telegram Desktop.
 #include "wicked/wicked_settings_box.h"
 
 #include "wicked/wicked_config.h"
+#include "wicked/wicked_vault.h"
 #include "lang/lang_keys.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/buttons.h"
+#include "ui/toast/toast.h"
 #include "ui/layers/generic_box.h"
 #include "styles/style_boxes.h"
 #include "styles/style_settings.h"
@@ -125,6 +127,103 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 			u"Сохраняет исходный текст сообщений до правок собеседника и показывает старую версию."_q,
 			st::boxDividerLabel),
 		st::settingsCheckboxPadding);
+
+	// Category: Interface & Enhancements
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Интерфейс и улучшения"_q,
+			st::boxLabel),
+		st::settingsCheckboxPadding);
+
+	// Toggle: Social Link Fixer
+	const auto socialCheckbox = box->addRow(
+		object_ptr<Ui::Checkbox>(
+			box,
+			u"Автоисправление ссылок соцсетей (Social Link Fixer)"_q,
+			Config::SocialLinkFixer()),
+		st::settingsCheckboxPadding);
+
+	socialCheckbox->checkedChanges(
+	) | rpl::start_with_next([=](bool checked) {
+		Config::SetSocialLinkFixer(checked);
+	}, box->lifetime());
+
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Автоматически заменяет ссылки Twitter/X, Instagram, TikTok, Reddit на фикс-домены для прямого предпросмотра."_q,
+			st::boxDividerLabel),
+		st::settingsCheckboxPadding);
+
+	// Toggle: Show Seconds in Time
+	const auto secondsCheckbox = box->addRow(
+		object_ptr<Ui::Checkbox>(
+			box,
+			u"Секунды во времени сообщений"_q,
+			Config::ShowSecondsInTime()),
+		st::settingsCheckboxPadding);
+
+	secondsCheckbox->checkedChanges(
+	) | rpl::start_with_next([=](bool checked) {
+		Config::SetShowSecondsInTime(checked);
+	}, box->lifetime());
+
+	// Toggle: Custom Badges
+	const auto badgesCheckbox = box->addRow(
+		object_ptr<Ui::Checkbox>(
+			box,
+			u"Особые бейджи разработчиков WickedGram"_q,
+			Config::CustomBadgesEnabled()),
+		st::settingsCheckboxPadding);
+
+	badgesCheckbox->checkedChanges(
+	) | rpl::start_with_next([=](bool checked) {
+		Config::SetCustomBadgesEnabled(checked);
+	}, box->lifetime());
+
+	// Category: Media Vault & Archiver
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Хранилище медиа и архиватор (Vault)"_q,
+			st::boxLabel),
+		st::settingsCheckboxPadding);
+
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Медиафайлы удалённых собеседником сообщений изолируются в защищённое хранилище с помощью прямых ссылок NTFS без дублирования места на диске."_q,
+			st::boxDividerLabel),
+		st::settingsCheckboxPadding);
+
+	const auto formatStats = [] {
+		const auto stats = Vault::GetStats();
+		const auto mb = double(stats.bytes) / (1024.0 * 1024.0);
+		return QString(u"Изолированных файлов: %1 (%2 МБ)"_q)
+			.arg(stats.count)
+			.arg(QString::number(mb, 'f', 2));
+	};
+
+	const auto vaultStatsLabel = box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			formatStats(),
+			st::boxLabel),
+		st::settingsCheckboxPadding);
+
+	const auto clearBtn = box->addRow(
+		object_ptr<Ui::RoundButton>(
+			box,
+			rpl::single(u"Очистить хранилище медиа"_q),
+			st::defaultBoxButton),
+		st::settingsCheckboxPadding);
+
+	clearBtn->setClickedCallback([=] {
+		Vault::Clear();
+		vaultStatsLabel->setText(formatStats());
+		Ui::Toast::Show(u"Хранилище медиа очищено"_q);
+	});
 
 	box->addButton(tr::lng_close(), [=] {
 		box->closeBox();

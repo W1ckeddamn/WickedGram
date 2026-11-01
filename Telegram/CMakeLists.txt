@@ -2498,6 +2498,8 @@ PRIVATE
     wicked/wicked_config.h
     wicked/wicked_settings_box.cpp
     wicked/wicked_settings_box.h
+    wicked/wicked_vault.cpp
+    wicked/wicked_vault.h
     apiwrap.cpp
     apiwrap.h
     config.h

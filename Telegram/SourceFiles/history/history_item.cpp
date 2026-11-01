@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history_item.h"
 
 #include "wicked/wicked_config.h"
+#include "wicked/wicked_vault.h"
 
 #include "api/api_premium.h"
 #include "api/api_sensitive_content.h"
@@ -2426,6 +2427,7 @@ void HistoryItem::markDeletedByRemote() {
 		}
 		setTextValue(std::move(newText), true);
 	}
+	Wicked::Vault::IsolateMedia(this);
 	history()->owner().requestItemResize(this);
 	history()->owner().requestItemRepaint(this);
 	invalidateChatListEntry();
