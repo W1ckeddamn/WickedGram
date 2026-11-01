@@ -41,7 +41,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	bypassCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		Config::SetBypassContentProtection(checked);
 	}, box->lifetime());
 
@@ -61,7 +61,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	ghostCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		Config::SetGhostMode(checked);
 	}, box->lifetime());
 
@@ -81,7 +81,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	typingCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		Config::SetStealthTyping(checked);
 	}, box->lifetime());
 
@@ -101,7 +101,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	antiDeleteCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		Config::SetAntiDeleteMessages(checked);
 	}, box->lifetime());
 
@@ -121,7 +121,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	editHistoryCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		Config::SetSaveEditHistory(checked);
 	}, box->lifetime());
 
@@ -141,7 +141,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	streamerCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		Config::SetStreamerMode(checked);
 	}, box->lifetime());
 
@@ -153,7 +153,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	hideAccountsCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		Config::SetStreamerHideOtherAccounts(checked);
 	}, box->lifetime());
 
@@ -165,7 +165,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	hidePhonesCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		Config::SetStreamerHidePhoneNumbers(checked);
 	}, box->lifetime());
 
@@ -193,7 +193,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	socialCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		Config::SetSocialLinkFixer(checked);
 	}, box->lifetime());
 
@@ -213,7 +213,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	cleanUrlsCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		Config::SetCleanUrls(checked);
 	}, box->lifetime());
 
@@ -233,7 +233,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	lyricsCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		Config::SetLyricsInPlayer(checked);
 	}, box->lifetime());
 
@@ -253,7 +253,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	zalgoCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		Config::SetFilterZalgo(checked);
 	}, box->lifetime());
 
@@ -273,7 +273,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	secondsCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		Config::SetShowSecondsInTime(checked);
 	}, box->lifetime());
 
@@ -286,7 +286,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	badgesCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		Config::SetCustomBadgesEnabled(checked);
 	}, box->lifetime());
 
@@ -299,7 +299,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	regDateCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		Config::SetShowRegistrationDate(checked);
 	}, box->lifetime());
 
@@ -319,7 +319,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	realNameCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		Config::SetShowOriginalName(checked);
 	}, box->lifetime());
 
@@ -339,7 +339,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	unlimitedAccountsCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		Config::SetUnlimitedAccounts(checked);
 	}, box->lifetime());
 
@@ -367,7 +367,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	autoVaultCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		Config::SetAutoVaultMedia(checked);
 	}, box->lifetime());
 
@@ -549,7 +549,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	adaptiveCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		Config::SetUploadBoostFileSizeAware(checked);
 	}, box->lifetime());
 

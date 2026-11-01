@@ -44,7 +44,7 @@ QJsonObject ItemToJson(not_null<HistoryItem*> item) {
 	obj["date"] = qint64(item->date());
 	obj["out"] = item->out();
 	obj["text"] = item->originalText().text;
-	obj["unread"] = item->isUnread();
+	obj["unread"] = item->unread(item->history());
 
 	if (const auto from = item->from()) {
 		obj["from_id"] = QString::number(from->id.value);
@@ -132,13 +132,13 @@ Bridge::Bridge() {
 
 	// Listen to active session changes across domain
 	Core::App().domain().activeSessionChanges(
-	) | rpl::start_with_next([=](Main::Session *session) {
+	) | rpl::on_next([=](Main::Session *session) {
 		setSession(session);
 	}, _lifetime);
 
 	// Listen to setting changes (port, token, enabled)
 	GlobalSettings().updates(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		updateServerState();
 	}, _lifetime);
 
@@ -179,7 +179,7 @@ void Bridge::setSession(Main::Session *session) {
 
 	if (_session) {
 		_session->data().newItemAdded(
-		) | rpl::start_with_next([=](not_null<HistoryItem*> item) {
+		) | rpl::on_next([=](not_null<HistoryItem*> item) {
 			onNewItemAdded(item);
 		}, _sessionLifetime);
 	}
@@ -245,11 +245,7 @@ HttpResponse Bridge::handleRequest(const HttpRequest &req) {
 		if (req.method != u"POST"_q) {
 			return HttpResponse::Error(405, u"Method Not Allowed: use POST"_q);
 		}
-		const auto doc = QJsonDocument::fromJson(req.body);
-		QString path;
-		if (doc.isObject()) {
-			path = doc.object().value("file_path").toString();
-		}
+		const auto path = req.body.value("file_path").toString();
 		if (path.isEmpty()) {
 			QDir dir(Wicked::BackupManager::DefaultBackupDirectory());
 			const auto list = dir.entryInfoList(QStringList() << u"*.json"_q, QDir::Files, QDir::Time);
@@ -347,7 +343,7 @@ HttpResponse Bridge::handleGetChats(const HttpRequest &req) {
 		for (const auto &row : list->indexed()->all()) {
 			const auto key = row->key();
 			const auto history = key.history();
-			const auto peer = history ? history->peer.get() : key.peer().get();
+			const auto peer = key.peer();
 			if (!peer) {
 				continue;
 			}
@@ -539,7 +535,7 @@ HttpResponse Bridge::handleOpenChat(const HttpRequest &req) {
 	if (const auto window = Core::App().activeWindow()) {
 		if (const auto controller = window->sessionController()) {
 			controller->showPeerHistory(PeerId(rawId));
-			window->activateWindow();
+			window->activate();
 		}
 	}
 

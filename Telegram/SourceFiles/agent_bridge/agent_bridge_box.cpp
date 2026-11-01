@@ -12,6 +12,7 @@ an open-source fork of Telegram Desktop.
 #include "ui/widgets/buttons.h"
 #include "ui/toast/toast.h"
 #include "styles/style_boxes.h"
+#include "styles/style_layers.h"
 #include "styles/style_settings.h"
 
 #include <QtGui/QGuiApplication>
@@ -32,7 +33,7 @@ void BridgeBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	enabledCheckbox->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		GlobalSettings().setEnabled(checked);
 	}, box->lifetime());
 
