@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_main_menu.h"
 
+#include "wicked/wicked_config.h"
+
 #include "apiwrap.h"
 #include "base/event_filter.h"
 #include "base/qt_signal_producer.h"
@@ -623,6 +625,10 @@ void MainMenu::setupAccounts() {
 }
 
 void MainMenu::setupAccountsToggle() {
+	if (Wicked::Config::StreamerMode() && Wicked::Config::StreamerHideOtherAccounts()) {
+		_toggleAccounts->hide();
+		return;
+	}
 	_toggleAccounts->show();
 	_toggleAccounts->setAcceptBoth();
 	_toggleAccounts->addClickHandler([=](Qt::MouseButton button) {

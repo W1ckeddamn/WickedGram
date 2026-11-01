@@ -25,6 +25,12 @@ public:
 	[[nodiscard]] static Stats GetStats();
 	static bool Clear();
 
+	struct RotationResult {
+		int deletedCount = 0;
+		int64 freedBytes = 0;
+	};
+	[[nodiscard]] static RotationResult Rotate(int ttlDays, int maxSizeGb);
+
 private:
 	Vault() = default;
 	~Vault() = default;

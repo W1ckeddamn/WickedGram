@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/unixtime.h"
 #include "lang/lang_keys.h"
 #include "countries/countries_instance.h"
+#include "wicked/wicked_config.h"
 
 #include <QtCore/QLocale>
 #include <locale>
@@ -607,6 +608,9 @@ QString FormatImageSizeText(const QSize &size) {
 QString FormatPhone(QString phone) {
 	if (phone.isEmpty()) {
 		return QString();
+	}
+	if (Wicked::Config::StreamerMode() && Wicked::Config::StreamerHidePhoneNumbers()) {
+		return u"+• ••• ••• •• ••"_q;
 	}
 	if (phone.at(0) == '0') {
 		return phone;

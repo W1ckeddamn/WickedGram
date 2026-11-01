@@ -9,12 +9,15 @@ an open-source fork of Telegram Desktop.
 #include "data/data_media_types.h"
 #include "data/data_document.h"
 #include "data/data_photo.h"
+#include "data/data_photo_media.h"
 #include "data/data_document_media.h"
 #include "storage/localstorage.h"
 
 #include <QtCore/QDir>
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
+#include <QtCore/QDateTime>
+#include <algorithm>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -93,6 +96,9 @@ bool Vault::IsolateMedia(not_null<HistoryItem*> item) {
 		if (QFile::exists(destPath)) {
 			return true;
 		}
+		if (const auto view = photo->activeMediaView()) {
+			return view->saveToFile(destPath);
+		}
 	}
 
 	return false;
@@ -119,6 +125,65 @@ bool Vault::Clear() {
 		}
 	}
 	return allOk;
+}
+
+Vault::RotationResult Vault::Rotate(int ttlDays, int maxSizeGb) {
+	RotationResult result;
+	if (ttlDays <= 0 && maxSizeGb <= 0) {
+		return result;
+	}
+	const auto dirPath = VaultDirectory();
+	QDir dir(dirPath);
+	auto entries = dir.entryInfoList(QDir::Files | QDir::NoDotAndDotDot);
+	const auto now = QDateTime::currentDateTime();
+
+	const auto maxAgeSecs = (ttlDays > 0) ? (int64(ttlDays) * 86400) : 0;
+	QFileInfoList surviving;
+	surviving.reserve(entries.size());
+
+	for (const auto &info : entries) {
+		if (info.size() == 0) {
+			QFile::remove(info.absoluteFilePath());
+			continue;
+		}
+		if (maxAgeSecs > 0) {
+			const auto ageSecs = info.lastModified().secsTo(now);
+			if (ageSecs > maxAgeSecs) {
+				const auto size = info.size();
+				if (QFile::remove(info.absoluteFilePath())) {
+					result.deletedCount++;
+					result.freedBytes += size;
+					continue;
+				}
+			}
+		}
+	surviving.push_back(info);
+	}
+
+	if (maxSizeGb > 0) {
+		const auto maxBytes = int64(maxSizeGb) * 1024 * 1024 * 1024;
+		int64 currentBytes = 0;
+		for (const auto &info : surviving) {
+			currentBytes += info.size();
+		}
+		if (currentBytes > maxBytes) {
+			std::sort(surviving.begin(), surviving.end(), [](const QFileInfo &a, const QFileInfo &b) {
+				return a.lastModified() < b.lastModified();
+			});
+			for (const auto &info : surviving) {
+				if (currentBytes <= maxBytes) {
+					break;
+				}
+				const auto size = info.size();
+				if (QFile::remove(info.absoluteFilePath())) {
+					currentBytes -= size;
+					result.deletedCount++;
+					result.freedBytes += size;
+				}
+			}
+		}
+	}
+	return result;
 }
 
 } // namespace Wicked

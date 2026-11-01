@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/sections/settings_information.h"
 
+#include "wicked/wicked_config.h"
+
 #include "settings/sections/settings_main.h"
 #include "settings/settings_builder.h"
 #include "settings/settings_common_session.h"
@@ -1119,6 +1121,8 @@ void AccountsList::rebuild() {
 
 		auto &button = i->second;
 		if (!account->sessionExists() || list.size() == 1) {
+			button = nullptr;
+		} else if (Wicked::Config::StreamerMode() && Wicked::Config::StreamerHideOtherAccounts() && account != &_controller->session().account()) {
 			button = nullptr;
 		} else if (!button) {
 			const auto nextIsLocked = (inner->count() >= premiumLimit);

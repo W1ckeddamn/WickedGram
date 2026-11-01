@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 
 #include "wicked/wicked_config.h"
+#include "wicked/wicked_vault.h"
 
 #include "main/main_session.h"
 #include "main/main_session_settings.h"
@@ -3352,6 +3353,7 @@ void Session::processMessagesDeleted(
 			if (Wicked::Config::AntiDeleteMessages()
 				&& item->isRegular()
 				&& !item->out()) {
+				Wicked::Vault::IsolateMedia(item);
 				item->markDeletedByRemote();
 				continue;
 			}
@@ -3383,6 +3385,7 @@ void Session::processNonChannelMessagesDeleted(const QVector<MTPint> &data) {
 			if (Wicked::Config::AntiDeleteMessages()
 				&& item->isRegular()
 				&& !item->out()) {
+				Wicked::Vault::IsolateMedia(item);
 				item->markDeletedByRemote();
 				continue;
 			}
@@ -3638,6 +3641,9 @@ HistoryItem *Session::addNewMessage(
 		type);
 	if (type == NewMessageType::Unread) {
 		CheckForSwitchInlineButton(result);
+	}
+	if (Wicked::Config::AutoVaultMedia() && result && result->media()) {
+		Wicked::Vault::IsolateMedia(result);
 	}
 	return result;
 }

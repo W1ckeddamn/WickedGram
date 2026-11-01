@@ -129,6 +129,50 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 			st::boxDividerLabel),
 		st::settingsCheckboxPadding);
 
+	// Streamer Mode
+	const auto streamerCheckbox = box->addRow(
+		object_ptr<Ui::Checkbox>(
+			box,
+			u"Режим стримера (Streamer Mode)"_q,
+			Config::StreamerMode()),
+		st::settingsCheckboxPadding);
+
+	streamerCheckbox->checkedChanges(
+	) | rpl::start_with_next([=](bool checked) {
+		Config::SetStreamerMode(checked);
+	}, box->lifetime());
+
+	const auto hideAccountsCheckbox = box->addRow(
+		object_ptr<Ui::Checkbox>(
+			box,
+			u"Скрывать другие аккаунты в меню стримера"_q,
+			Config::StreamerHideOtherAccounts()),
+		st::settingsCheckboxPadding);
+
+	hideAccountsCheckbox->checkedChanges(
+	) | rpl::start_with_next([=](bool checked) {
+		Config::SetStreamerHideOtherAccounts(checked);
+	}, box->lifetime());
+
+	const auto hidePhonesCheckbox = box->addRow(
+		object_ptr<Ui::Checkbox>(
+			box,
+			u"Скрывать телефонные номера в интерфейсе (+• ••• ••• •• ••)"_q,
+			Config::StreamerHidePhoneNumbers()),
+		st::settingsCheckboxPadding);
+
+	hidePhonesCheckbox->checkedChanges(
+	) | rpl::start_with_next([=](bool checked) {
+		Config::SetStreamerHidePhoneNumbers(checked);
+	}, box->lifetime());
+
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Маскирует телефонные номера и скрывает дополнительные аккаунты от случайного показа во время трансляции экрана."_q,
+			st::boxDividerLabel),
+		st::settingsCheckboxPadding);
+
 	// Category: Interface & Enhancements
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
@@ -154,6 +198,46 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		object_ptr<Ui::FlatLabel>(
 			box,
 			u"Автоматически заменяет ссылки Twitter/X, Instagram, TikTok, Reddit на фикс-домены для прямого предпросмотра."_q,
+			st::boxDividerLabel),
+		st::settingsCheckboxPadding);
+
+	// Toggle: Clean URLs
+	const auto cleanUrlsCheckbox = box->addRow(
+		object_ptr<Ui::Checkbox>(
+			box,
+			u"Очистка ссылок от трекеров и utm-меток (Clean URLs)"_q,
+			Config::CleanUrls()),
+		st::settingsCheckboxPadding);
+
+	cleanUrlsCheckbox->checkedChanges(
+	) | rpl::start_with_next([=](bool checked) {
+		Config::SetCleanUrls(checked);
+	}, box->lifetime());
+
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Удаляет отслеживающие параметры (?utm_*, fbclid, si, igshid, ref) из отправляемых ссылок."_q,
+			st::boxDividerLabel),
+		st::settingsCheckboxPadding);
+
+	// Toggle: Zalgo Filter
+	const auto zalgoCheckbox = box->addRow(
+		object_ptr<Ui::Checkbox>(
+			box,
+			u"Фильтрация Zalgo-глитчей и RTL-троянов"_q,
+			Config::FilterZalgo()),
+		st::settingsCheckboxPadding);
+
+	zalgoCheckbox->checkedChanges(
+	) | rpl::start_with_next([=](bool checked) {
+		Config::SetFilterZalgo(checked);
+	}, box->lifetime());
+
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Срезает избыточные комбинирующие диакритические знаки и скрытые символы инверсии направления текста."_q,
 			st::boxDividerLabel),
 		st::settingsCheckboxPadding);
 
@@ -251,10 +335,23 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 			st::boxLabel),
 		st::settingsCheckboxPadding);
 
+	// Toggle: Auto-Vault
+	const auto autoVaultCheckbox = box->addRow(
+		object_ptr<Ui::Checkbox>(
+			box,
+			u"Авто-сохранение всех входящих медиа (Auto-Vault)"_q,
+			Config::AutoVaultMedia()),
+		st::settingsCheckboxPadding);
+
+	autoVaultCheckbox->checkedChanges(
+	) | rpl::start_with_next([=](bool checked) {
+		Config::SetAutoVaultMedia(checked);
+	}, box->lifetime());
+
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
 			box,
-			u"Медиафайлы удалённых собеседником сообщений изолируются в защищённое хранилище с помощью прямых ссылок NTFS без дублирования места на диске."_q,
+			u"Автоматически изолирует полученные фото, видео и документы в защищённое хранилище на диске при получении."_q,
 			st::boxDividerLabel),
 		st::settingsCheckboxPadding);
 
@@ -273,10 +370,26 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 			st::boxLabel),
 		st::settingsCheckboxPadding);
 
+	const auto rotateBtn = box->addRow(
+		object_ptr<Ui::RoundButton>(
+			box,
+			rpl::single(u"Выполнить очистку по сроку и квоте"_q),
+			st::defaultBoxButton),
+		st::settingsCheckboxPadding);
+
+	rotateBtn->setClickedCallback([=] {
+		const auto res = Vault::Rotate(Config::VaultTtlDays(), Config::VaultMaxSizeGb());
+		vaultStatsLabel->setText(formatStats());
+		const auto freedMb = double(res.freedBytes) / (1024.0 * 1024.0);
+		Ui::Toast::Show(QString(u"Очистка завершена: удалено %1 файлов (%2 МБ)"_q)
+			.arg(res.deletedCount)
+			.arg(QString::number(freedMb, 'f', 2)));
+	});
+
 	const auto clearBtn = box->addRow(
 		object_ptr<Ui::RoundButton>(
 			box,
-			rpl::single(u"Очистить хранилище медиа"_q),
+			rpl::single(u"Очистить хранилище медиа полностью"_q),
 			st::defaultBoxButton),
 		st::settingsCheckboxPadding);
 

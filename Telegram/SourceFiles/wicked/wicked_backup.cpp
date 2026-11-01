@@ -7,12 +7,12 @@ an open-source fork of Telegram Desktop.
 #include "wicked/wicked_config.h"
 #include "storage/localstorage.h"
 
-#include <QtCore/QDir>
 #include <QtCore/QFile>
+#include <QtCore/QDir>
 #include <QtCore/QFileInfo>
-#include <QtCore/QDateTime>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
+#include <QtCore/QDateTime>
 
 namespace Wicked {
 
@@ -22,12 +22,14 @@ QString BackupManager::DefaultBackupDirectory() {
 	return dir;
 }
 
-QString BackupManager::ExportBackup(const QString &targetFilePath) {
-	auto dest = targetFilePath;
-	if (dest.isEmpty()) {
-		const auto timestamp = QDateTime::currentDateTime().toString(u"yyyyMMdd_HHmmss"_q);
-		dest = DefaultBackupDirectory() + u"wickedgram_settings_"_q + timestamp + u".json"_q;
-	}
+QString BackupManager::ExportBackup(const QString &destinationPath) {
+	const auto dest = destinationPath.isEmpty()
+		? (DefaultBackupDirectory() + u"wickedgram_settings_"_q
+			+ QString::number(QDateTime::currentSecsSinceEpoch())
+			+ u".json"_q)
+		: destinationPath;
+
+	Config::Instance().load();
 
 	QJsonObject configObj;
 	configObj.insert("bypassContentProtection", Config::BypassContentProtection());
@@ -41,6 +43,14 @@ QString BackupManager::ExportBackup(const QString &targetFilePath) {
 	configObj.insert("showRegistrationDate", Config::ShowRegistrationDate());
 	configObj.insert("showOriginalName", Config::ShowOriginalName());
 	configObj.insert("unlimitedAccounts", Config::UnlimitedAccounts());
+	configObj.insert("autoVaultMedia", Config::AutoVaultMedia());
+	configObj.insert("vaultMaxSizeGb", Config::VaultMaxSizeGb());
+	configObj.insert("vaultTtlDays", Config::VaultTtlDays());
+	configObj.insert("streamerMode", Config::StreamerMode());
+	configObj.insert("streamerHideOtherAccounts", Config::StreamerHideOtherAccounts());
+	configObj.insert("streamerHidePhoneNumbers", Config::StreamerHidePhoneNumbers());
+	configObj.insert("filterZalgo", Config::FilterZalgo());
+	configObj.insert("cleanUrls", Config::CleanUrls());
 
 	QJsonObject root;
 	root.insert("app", "WickedGram");
@@ -119,6 +129,30 @@ bool BackupManager::ImportBackup(const QString &filePath) {
 	}
 	if (configObj.contains("unlimitedAccounts")) {
 		Config::SetUnlimitedAccounts(configObj.value("unlimitedAccounts").toBool());
+	}
+	if (configObj.contains("autoVaultMedia")) {
+		Config::SetAutoVaultMedia(configObj.value("autoVaultMedia").toBool());
+	}
+	if (configObj.contains("vaultMaxSizeGb")) {
+		Config::SetVaultMaxSizeGb(configObj.value("vaultMaxSizeGb").toInt());
+	}
+	if (configObj.contains("vaultTtlDays")) {
+		Config::SetVaultTtlDays(configObj.value("vaultTtlDays").toInt());
+	}
+	if (configObj.contains("streamerMode")) {
+		Config::SetStreamerMode(configObj.value("streamerMode").toBool());
+	}
+	if (configObj.contains("streamerHideOtherAccounts")) {
+		Config::SetStreamerHideOtherAccounts(configObj.value("streamerHideOtherAccounts").toBool());
+	}
+	if (configObj.contains("streamerHidePhoneNumbers")) {
+		Config::SetStreamerHidePhoneNumbers(configObj.value("streamerHidePhoneNumbers").toBool());
+	}
+	if (configObj.contains("filterZalgo")) {
+		Config::SetFilterZalgo(configObj.value("filterZalgo").toBool());
+	}
+	if (configObj.contains("cleanUrls")) {
+		Config::SetCleanUrls(configObj.value("cleanUrls").toBool());
 	}
 
 	return true;

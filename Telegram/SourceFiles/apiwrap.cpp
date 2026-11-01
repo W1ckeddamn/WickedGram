@@ -4759,6 +4759,9 @@ void ApiWrap::sendMessage(
 	if (Wicked::Config::SocialLinkFixer()) {
 		message.textWithTags.text = Wicked::Config::FixSocialLinks(message.textWithTags.text);
 	}
+	if (Wicked::Config::CleanUrls()) {
+		message.textWithTags.text = Wicked::Config::CleanUrlsInText(message.textWithTags.text);
+	}
 	const auto history = message.action.history;
 	const auto peer = history->peer;
 	const auto &textWithTags = message.textWithTags;

@@ -4818,6 +4818,9 @@ void HistoryItem::detectTextLinks(
 }
 
 void HistoryItem::setText(TextWithEntities textWithEntities) {
+	if (Wicked::Config::FilterZalgo()) {
+		textWithEntities.text = Wicked::Config::FilterZalgoText(textWithEntities.text);
+	}
 	detectTextLinks(textWithEntities);
 	setTextValue((_media && _media->consumeMessageText(textWithEntities))
 		? TextWithEntities()

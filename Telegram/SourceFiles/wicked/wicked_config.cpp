@@ -10,6 +10,7 @@ an open-source fork of Telegram Desktop.
 #include <QtCore/QDir>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
+#include <QtCore/QStringList>
 
 namespace Wicked {
 
@@ -191,6 +192,126 @@ void Config::SetUnlimitedAccounts(bool enabled) {
 	}
 }
 
+bool Config::AutoVaultMedia() {
+	return Instance()._autoVaultMedia.current();
+}
+
+rpl::producer<bool> Config::AutoVaultMediaValue() {
+	return Instance()._autoVaultMedia.value();
+}
+
+void Config::SetAutoVaultMedia(bool enabled) {
+	if (Instance()._autoVaultMedia.current() != enabled) {
+		Instance()._autoVaultMedia = enabled;
+		Instance().save();
+	}
+}
+
+int Config::VaultMaxSizeGb() {
+	return Instance()._vaultMaxSizeGb.current();
+}
+
+rpl::producer<int> Config::VaultMaxSizeGbValue() {
+	return Instance()._vaultMaxSizeGb.value();
+}
+
+void Config::SetVaultMaxSizeGb(int gb) {
+	if (Instance()._vaultMaxSizeGb.current() != gb) {
+		Instance()._vaultMaxSizeGb = gb;
+		Instance().save();
+	}
+}
+
+int Config::VaultTtlDays() {
+	return Instance()._vaultTtlDays.current();
+}
+
+rpl::producer<int> Config::VaultTtlDaysValue() {
+	return Instance()._vaultTtlDays.value();
+}
+
+void Config::SetVaultTtlDays(int days) {
+	if (Instance()._vaultTtlDays.current() != days) {
+		Instance()._vaultTtlDays = days;
+		Instance().save();
+	}
+}
+
+bool Config::StreamerMode() {
+	return Instance()._streamerMode.current();
+}
+
+rpl::producer<bool> Config::StreamerModeValue() {
+	return Instance()._streamerMode.value();
+}
+
+void Config::SetStreamerMode(bool enabled) {
+	if (Instance()._streamerMode.current() != enabled) {
+		Instance()._streamerMode = enabled;
+		Instance().save();
+	}
+}
+
+bool Config::StreamerHideOtherAccounts() {
+	return Instance()._streamerHideOtherAccounts.current();
+}
+
+rpl::producer<bool> Config::StreamerHideOtherAccountsValue() {
+	return Instance()._streamerHideOtherAccounts.value();
+}
+
+void Config::SetStreamerHideOtherAccounts(bool enabled) {
+	if (Instance()._streamerHideOtherAccounts.current() != enabled) {
+		Instance()._streamerHideOtherAccounts = enabled;
+		Instance().save();
+	}
+}
+
+bool Config::StreamerHidePhoneNumbers() {
+	return Instance()._streamerHidePhoneNumbers.current();
+}
+
+rpl::producer<bool> Config::StreamerHidePhoneNumbersValue() {
+	return Instance()._streamerHidePhoneNumbers.value();
+}
+
+void Config::SetStreamerHidePhoneNumbers(bool enabled) {
+	if (Instance()._streamerHidePhoneNumbers.current() != enabled) {
+		Instance()._streamerHidePhoneNumbers = enabled;
+		Instance().save();
+	}
+}
+
+bool Config::FilterZalgo() {
+	return Instance()._filterZalgo.current();
+}
+
+rpl::producer<bool> Config::FilterZalgoValue() {
+	return Instance()._filterZalgo.value();
+}
+
+void Config::SetFilterZalgo(bool enabled) {
+	if (Instance()._filterZalgo.current() != enabled) {
+		Instance()._filterZalgo = enabled;
+		Instance().save();
+	}
+}
+
+bool Config::CleanUrls() {
+	return Instance()._cleanUrls.current();
+}
+
+rpl::producer<bool> Config::CleanUrlsValue() {
+	return Instance()._cleanUrls.value();
+}
+
+void Config::SetCleanUrls(bool enabled) {
+	if (Instance()._cleanUrls.current() != enabled) {
+		Instance()._cleanUrls = enabled;
+		Instance().save();
+	}
+}
+
 QString Config::FixSocialLinks(QString text) {
 	if (!SocialLinkFixer() || text.isEmpty()) {
 		return text;
@@ -220,6 +341,104 @@ QString Config::FixSocialLinks(QString text) {
 	if (result.contains(u"pixiv.net/"_q)) {
 		result.replace(u"https://www.pixiv.net/"_q, u"https://phixiv.net/"_q);
 		result.replace(u"https://pixiv.net/"_q, u"https://phixiv.net/"_q);
+	}
+	return result;
+}
+
+QString Config::CleanUrl(QString url) {
+	if (url.isEmpty() || (!url.startsWith(u"http://"_q) && !url.startsWith(u"https://"_q))) {
+		return url;
+	}
+	const auto qIndex = url.indexOf('?');
+	if (qIndex < 0) {
+		return url;
+	}
+	const auto base = url.left(qIndex);
+	auto query = url.mid(qIndex + 1);
+	auto fragment = QString();
+	const auto fIndex = query.indexOf('#');
+	if (fIndex >= 0) {
+		fragment = query.mid(fIndex);
+		query = query.left(fIndex);
+	}
+	const auto pairs = query.split('&', Qt::SkipEmptyParts);
+	QStringList newPairs;
+	static const auto tracking = std::vector<QString>{
+		u"utm_source"_q, u"utm_medium"_q, u"utm_campaign"_q,
+		u"utm_term"_q, u"utm_content"_q, u"utm_id"_q,
+		u"fbclid"_q, u"gclid"_q, u"gbraid"_q, u"wbraid"_q,
+		u"si"_q, u"igshid"_q, u"ref"_q, u"ref_src"_q,
+		u"yclid"_q, u"ysclid"_q, u"mc_eid"_q, u"_hsenc"_q, u"_hsmi"_q
+	};
+	for (const auto &pair : pairs) {
+		const auto eqIndex = pair.indexOf('=');
+		const auto key = (eqIndex >= 0 ? pair.left(eqIndex) : pair).toLower();
+		bool isTracking = false;
+		if (key.startsWith(u"utm_"_q)) {
+			isTracking = true;
+		} else {
+			for (const auto &t : tracking) {
+				if (key == t) {
+					isTracking = true;
+					break;
+				}
+			}
+		}
+		if (!isTracking) {
+			newPairs.append(pair);
+		}
+	}
+	if (newPairs.isEmpty()) {
+		return base + fragment;
+	}
+	return base + '?' + newPairs.join('&') + fragment;
+}
+
+QString Config::CleanUrlsInText(QString text) {
+	if (!CleanUrls() || text.isEmpty()) {
+		return text;
+	}
+	const auto tokens = text.split(' ');
+	QStringList cleaned;
+	for (const auto &tok : tokens) {
+		if (tok.startsWith(u"http://"_q) || tok.startsWith(u"https://"_q)) {
+			cleaned.append(CleanUrl(tok));
+		} else {
+			cleaned.append(tok);
+		}
+	}
+	return cleaned.join(' ');
+}
+
+QString Config::FilterZalgoText(QString text) {
+	if (text.isEmpty() || !FilterZalgo()) {
+		return text;
+	}
+	QString result;
+	result.reserve(text.size());
+	int consecutiveMarks = 0;
+	for (int i = 0; i < text.size(); ++i) {
+		const auto ch = text.at(i);
+		const auto ucs4 = ch.unicode();
+		if (ucs4 == 1564 || ucs4 == 8206 || ucs4 == 8207
+			|| (ucs4 >= 8234 && ucs4 <= 8238)
+			|| (ucs4 >= 8294 && ucs4 <= 8297)) {
+			continue;
+		}
+		const bool isMark = (ucs4 >= 768 && ucs4 <= 879)
+			|| (ucs4 >= 6832 && ucs4 <= 6911)
+			|| (ucs4 >= 7616 && ucs4 <= 7679)
+			|| (ucs4 >= 8400 && ucs4 <= 8447)
+			|| (ucs4 >= 65056 && ucs4 <= 65071);
+		if (isMark) {
+			consecutiveMarks++;
+			if (consecutiveMarks > 2) {
+				continue;
+			}
+		} else {
+			consecutiveMarks = 0;
+		}
+		result.append(ch);
 	}
 	return result;
 }
@@ -282,6 +501,30 @@ void Config::load() {
 	if (obj.contains("unlimitedAccounts")) {
 		_unlimitedAccounts = obj.value("unlimitedAccounts").toBool(true);
 	}
+	if (obj.contains("autoVaultMedia")) {
+		_autoVaultMedia = obj.value("autoVaultMedia").toBool(false);
+	}
+	if (obj.contains("vaultMaxSizeGb")) {
+		_vaultMaxSizeGb = obj.value("vaultMaxSizeGb").toInt(0);
+	}
+	if (obj.contains("vaultTtlDays")) {
+		_vaultTtlDays = obj.value("vaultTtlDays").toInt(0);
+	}
+	if (obj.contains("streamerMode")) {
+		_streamerMode = obj.value("streamerMode").toBool(false);
+	}
+	if (obj.contains("streamerHideOtherAccounts")) {
+		_streamerHideOtherAccounts = obj.value("streamerHideOtherAccounts").toBool(true);
+	}
+	if (obj.contains("streamerHidePhoneNumbers")) {
+		_streamerHidePhoneNumbers = obj.value("streamerHidePhoneNumbers").toBool(true);
+	}
+	if (obj.contains("filterZalgo")) {
+		_filterZalgo = obj.value("filterZalgo").toBool(true);
+	}
+	if (obj.contains("cleanUrls")) {
+		_cleanUrls = obj.value("cleanUrls").toBool(true);
+	}
 }
 
 void Config::save() {
@@ -303,6 +546,14 @@ void Config::save() {
 	obj.insert("showRegistrationDate", _showRegistrationDate.current());
 	obj.insert("showOriginalName", _showOriginalName.current());
 	obj.insert("unlimitedAccounts", _unlimitedAccounts.current());
+	obj.insert("autoVaultMedia", _autoVaultMedia.current());
+	obj.insert("vaultMaxSizeGb", _vaultMaxSizeGb.current());
+	obj.insert("vaultTtlDays", _vaultTtlDays.current());
+	obj.insert("streamerMode", _streamerMode.current());
+	obj.insert("streamerHideOtherAccounts", _streamerHideOtherAccounts.current());
+	obj.insert("streamerHidePhoneNumbers", _streamerHidePhoneNumbers.current());
+	obj.insert("filterZalgo", _filterZalgo.current());
+	obj.insert("cleanUrls", _cleanUrls.current());
 
 	QFile file(path);
 	if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {

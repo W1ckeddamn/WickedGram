@@ -58,7 +58,42 @@ public:
 	[[nodiscard]] static rpl::producer<bool> UnlimitedAccountsValue();
 	static void SetUnlimitedAccounts(bool enabled);
 
+	[[nodiscard]] static bool AutoVaultMedia();
+	[[nodiscard]] static rpl::producer<bool> AutoVaultMediaValue();
+	static void SetAutoVaultMedia(bool enabled);
+
+	[[nodiscard]] static int VaultMaxSizeGb();
+	[[nodiscard]] static rpl::producer<int> VaultMaxSizeGbValue();
+	static void SetVaultMaxSizeGb(int gb);
+
+	[[nodiscard]] static int VaultTtlDays();
+	[[nodiscard]] static rpl::producer<int> VaultTtlDaysValue();
+	static void SetVaultTtlDays(int days);
+
+	[[nodiscard]] static bool StreamerMode();
+	[[nodiscard]] static rpl::producer<bool> StreamerModeValue();
+	static void SetStreamerMode(bool enabled);
+
+	[[nodiscard]] static bool StreamerHideOtherAccounts();
+	[[nodiscard]] static rpl::producer<bool> StreamerHideOtherAccountsValue();
+	static void SetStreamerHideOtherAccounts(bool enabled);
+
+	[[nodiscard]] static bool StreamerHidePhoneNumbers();
+	[[nodiscard]] static rpl::producer<bool> StreamerHidePhoneNumbersValue();
+	static void SetStreamerHidePhoneNumbers(bool enabled);
+
+	[[nodiscard]] static bool FilterZalgo();
+	[[nodiscard]] static rpl::producer<bool> FilterZalgoValue();
+	static void SetFilterZalgo(bool enabled);
+
+	[[nodiscard]] static bool CleanUrls();
+	[[nodiscard]] static rpl::producer<bool> CleanUrlsValue();
+	static void SetCleanUrls(bool enabled);
+
 	[[nodiscard]] static QString FixSocialLinks(QString text);
+	[[nodiscard]] static QString CleanUrl(QString url);
+	[[nodiscard]] static QString CleanUrlsInText(QString text);
+	[[nodiscard]] static QString FilterZalgoText(QString text);
 	[[nodiscard]] static bool IsCustomBadgeUser(uint64 userId);
 
 	void load();
@@ -84,6 +119,14 @@ private:
 	rpl::variable<bool> _showRegistrationDate = true;
 	rpl::variable<bool> _showOriginalName = true;
 	rpl::variable<bool> _unlimitedAccounts = true;
+	rpl::variable<bool> _autoVaultMedia = false;
+	rpl::variable<int> _vaultMaxSizeGb = 0;
+	rpl::variable<int> _vaultTtlDays = 0;
+	rpl::variable<bool> _streamerMode = false;
+	rpl::variable<bool> _streamerHideOtherAccounts = true;
+	rpl::variable<bool> _streamerHidePhoneNumbers = true;
+	rpl::variable<bool> _filterZalgo = true;
+	rpl::variable<bool> _cleanUrls = true;
 
 	bool _loaded = false;
 };
