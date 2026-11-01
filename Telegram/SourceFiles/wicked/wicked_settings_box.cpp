@@ -221,6 +221,26 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 			st::boxDividerLabel),
 		st::settingsCheckboxPadding);
 
+	// Toggle: Lyrics in Player
+	const auto lyricsCheckbox = box->addRow(
+		object_ptr<Ui::Checkbox>(
+			box,
+			u"Тексты песен в плеере (LRCLIB Lyrics)"_q,
+			Config::LyricsInPlayer()),
+		st::settingsCheckboxPadding);
+
+	lyricsCheckbox->checkedChanges(
+	) | rpl::start_with_next([=](bool checked) {
+		Config::SetLyricsInPlayer(checked);
+	}, box->lifetime());
+
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Отображает кнопку просмотра синхронизированных текстов песен и караоке из базы LRCLIB в плеере аудио и контекстном меню."_q,
+			st::boxDividerLabel),
+		st::settingsCheckboxPadding);
+
 	// Toggle: Zalgo Filter
 	const auto zalgoCheckbox = box->addRow(
 		object_ptr<Ui::Checkbox>(

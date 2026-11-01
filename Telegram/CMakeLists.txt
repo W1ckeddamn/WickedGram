@@ -2498,6 +2498,8 @@ PRIVATE
     wicked/wicked_backup.h
     wicked/wicked_chat_exporter.cpp
     wicked/wicked_chat_exporter.h
+    wicked/wicked_lyrics.cpp
+    wicked/wicked_lyrics.h
     wicked/wicked_config.cpp
     wicked/wicked_config.h
     wicked/wicked_realname.cpp

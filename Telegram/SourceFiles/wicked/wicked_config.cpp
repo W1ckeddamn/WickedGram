@@ -312,6 +312,21 @@ void Config::SetCleanUrls(bool enabled) {
 	}
 }
 
+bool Config::LyricsInPlayer() {
+	return Instance()._lyricsInPlayer.current();
+}
+
+rpl::producer<bool> Config::LyricsInPlayerValue() {
+	return Instance()._lyricsInPlayer.value();
+}
+
+void Config::SetLyricsInPlayer(bool enabled) {
+	if (Instance()._lyricsInPlayer.current() != enabled) {
+		Instance()._lyricsInPlayer = enabled;
+		Instance().save();
+	}
+}
+
 QString Config::FixSocialLinks(QString text) {
 	if (!SocialLinkFixer() || text.isEmpty()) {
 		return text;
@@ -525,6 +540,9 @@ void Config::load() {
 	if (obj.contains("cleanUrls")) {
 		_cleanUrls = obj.value("cleanUrls").toBool(true);
 	}
+	if (obj.contains("lyricsInPlayer")) {
+		_lyricsInPlayer = obj.value("lyricsInPlayer").toBool(true);
+	}
 }
 
 void Config::save() {
@@ -554,6 +572,7 @@ void Config::save() {
 	obj.insert("streamerHidePhoneNumbers", _streamerHidePhoneNumbers.current());
 	obj.insert("filterZalgo", _filterZalgo.current());
 	obj.insert("cleanUrls", _cleanUrls.current());
+	obj.insert("lyricsInPlayer", _lyricsInPlayer.current());
 
 	QFile file(path);
 	if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {

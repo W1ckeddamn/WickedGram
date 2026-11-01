@@ -7,6 +7,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "media/player/media_player_widget.h"
 
+#include "wicked/wicked_config.h"
+#include "wicked/wicked_lyrics.h"
+
 #include "platform/platform_specific.h"
 #include "data/data_document.h"
 #include "data/data_session.h"
@@ -55,6 +58,7 @@ Widget::Widget(
 , _volumeToggle(rightControls(), st::mediaPlayerVolumeToggle)
 , _repeatToggle(rightControls(), st::mediaPlayerRepeatButton)
 , _orderToggle(rightControls(), st::mediaPlayerOrderButton)
+, _lyricsToggle(rightControls(), st::mediaPlayerRepeatButton)
 , _speedToggle(rightControls(), st::mediaPlayerSpeedButton)
 , _close(this, st::mediaPlayerClose)
 , _shadow(this)
@@ -97,6 +101,14 @@ Widget::Widget(
 
 	_volumeToggle->setAccessibleName(tr::lng_ringtones_box_volume(tr::now));
 	_repeatToggle->setAccessibleName(tr::lng_schedule_repeat_label(tr::now));
+	_lyricsToggle->setClickedCallback([=] {
+		const auto current = instance()->current(AudioMsgId::Type::Song);
+		if (const auto doc = current.audio()) {
+			if (const auto song = doc->song()) {
+				Wicked::ShowLyricsBox(_controller, song->title, song->performer, doc->duration());
+			}
+		}
+	});
 	_orderToggle->setAccessibleName(tr::lng_sr_playback_order(tr::now));
 	_close->setAccessibleName(tr::lng_sr_player_close(tr::now));
 
@@ -421,6 +433,9 @@ void Widget::updateControlsGeometry() {
 		_speedToggle->moveToRight(right, 0); right += _speedToggle->width();
 	}
 	if (_type == AudioMsgId::Type::Song) {
+		if (Wicked::Config::LyricsInPlayer()) {
+			_lyricsToggle->moveToRight(right, 0); right += _lyricsToggle->width();
+		}
 		_repeatToggle->moveToRight(right, 0); right += _repeatToggle->width();
 		_orderToggle->moveToRight(right, 0); right += _orderToggle->width();
 	}
@@ -593,6 +608,9 @@ int Widget::getTimeRight() const {
 	auto result = 0;
 	result += _volumeToggle->width();
 	if (_type == AudioMsgId::Type::Song) {
+		if (Wicked::Config::LyricsInPlayer()) {
+			result += _lyricsToggle->width();
+		}
 		result += _repeatToggle->width()
 			+ _orderToggle->width();
 	}
@@ -659,6 +677,7 @@ bool Widget::hasPlaybackSpeedControl() const {
 void Widget::updateControlsVisibility() {
 	_repeatToggle->setVisible(_type == AudioMsgId::Type::Song);
 	_orderToggle->setVisible(_type == AudioMsgId::Type::Song);
+	_lyricsToggle->setVisible(_type == AudioMsgId::Type::Song && Wicked::Config::LyricsInPlayer());
 	_speedToggle->setVisible(hasPlaybackSpeedControl());
 	if (!_shadow->isHidden()) {
 		_playbackSlider->setVisible(_type == AudioMsgId::Type::Song);

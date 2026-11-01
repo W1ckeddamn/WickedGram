@@ -7,6 +7,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/history_view_context_menu.h"
 
+#include "wicked/wicked_config.h"
+#include "wicked/wicked_lyrics.h"
+
 #include "api/api_attached_stickers.h"
 #include "api/api_editing.h"
 #include "api/api_global_privacy.h"
@@ -493,6 +496,16 @@ void AddDocumentActions(
 				? tr::lng_context_show_in_finder(tr::now)
 				: tr::lng_context_show_in_folder(tr::now)),
 			[=] { ShowInFolder(document); },
+			&st::menuIconShowInFolder);
+	}
+	if (document->song() && Wicked::Config::LyricsInPlayer()) {
+		const auto controller = list->controller();
+		const auto song = document->song();
+		menu->addAction(
+			u"Текст песни (Lyrics)"_q,
+			[=] {
+				Wicked::ShowLyricsBox(controller, song->title, song->performer, document->duration());
+			},
 			&st::menuIconShowInFolder);
 	}
 	if (document->hasAttachedStickers()) {

@@ -51,6 +51,7 @@ QString BackupManager::ExportBackup(const QString &destinationPath) {
 	configObj.insert("streamerHidePhoneNumbers", Config::StreamerHidePhoneNumbers());
 	configObj.insert("filterZalgo", Config::FilterZalgo());
 	configObj.insert("cleanUrls", Config::CleanUrls());
+	configObj.insert("lyricsInPlayer", Config::LyricsInPlayer());
 
 	QJsonObject root;
 	root.insert("app", "WickedGram");
@@ -153,6 +154,9 @@ bool BackupManager::ImportBackup(const QString &filePath) {
 	}
 	if (configObj.contains("cleanUrls")) {
 		Config::SetCleanUrls(configObj.value("cleanUrls").toBool());
+	}
+	if (configObj.contains("lyricsInPlayer")) {
+		Config::SetLyricsInPlayer(configObj.value("lyricsInPlayer").toBool());
 	}
 
 	return true;

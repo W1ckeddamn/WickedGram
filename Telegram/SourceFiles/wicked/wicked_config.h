@@ -90,6 +90,10 @@ public:
 	[[nodiscard]] static rpl::producer<bool> CleanUrlsValue();
 	static void SetCleanUrls(bool enabled);
 
+	[[nodiscard]] static bool LyricsInPlayer();
+	[[nodiscard]] static rpl::producer<bool> LyricsInPlayerValue();
+	static void SetLyricsInPlayer(bool enabled);
+
 	[[nodiscard]] static QString FixSocialLinks(QString text);
 	[[nodiscard]] static QString CleanUrl(QString url);
 	[[nodiscard]] static QString CleanUrlsInText(QString text);
@@ -127,6 +131,7 @@ private:
 	rpl::variable<bool> _streamerHidePhoneNumbers = true;
 	rpl::variable<bool> _filterZalgo = true;
 	rpl::variable<bool> _cleanUrls = true;
+	rpl::variable<bool> _lyricsInPlayer = true;
 
 	bool _loaded = false;
 };
