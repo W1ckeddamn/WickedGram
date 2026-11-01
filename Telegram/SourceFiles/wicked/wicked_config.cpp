@@ -71,6 +71,36 @@ void Config::SetStealthTyping(bool enabled) {
 	}
 }
 
+bool Config::AntiDeleteMessages() {
+	return Instance()._antiDeleteMessages.current();
+}
+
+rpl::producer<bool> Config::AntiDeleteMessagesValue() {
+	return Instance()._antiDeleteMessages.value();
+}
+
+void Config::SetAntiDeleteMessages(bool enabled) {
+	if (Instance()._antiDeleteMessages.current() != enabled) {
+		Instance()._antiDeleteMessages = enabled;
+		Instance().save();
+	}
+}
+
+bool Config::SaveEditHistory() {
+	return Instance()._saveEditHistory.current();
+}
+
+rpl::producer<bool> Config::SaveEditHistoryValue() {
+	return Instance()._saveEditHistory.value();
+}
+
+void Config::SetSaveEditHistory(bool enabled) {
+	if (Instance()._saveEditHistory.current() != enabled) {
+		Instance()._saveEditHistory = enabled;
+		Instance().save();
+	}
+}
+
 bool Config::SocialLinkFixer() {
 	return Instance()._socialLinkFixer.current();
 }
@@ -183,6 +213,12 @@ void Config::load() {
 	if (obj.contains("stealthTyping")) {
 		_stealthTyping = obj.value("stealthTyping").toBool(false);
 	}
+	if (obj.contains("antiDeleteMessages")) {
+		_antiDeleteMessages = obj.value("antiDeleteMessages").toBool(true);
+	}
+	if (obj.contains("saveEditHistory")) {
+		_saveEditHistory = obj.value("saveEditHistory").toBool(true);
+	}
 	if (obj.contains("socialLinkFixer")) {
 		_socialLinkFixer = obj.value("socialLinkFixer").toBool(true);
 	}
@@ -205,6 +241,8 @@ void Config::save() {
 	obj.insert("bypassContentProtection", _bypassContentProtection.current());
 	obj.insert("ghostMode", _ghostMode.current());
 	obj.insert("stealthTyping", _stealthTyping.current());
+	obj.insert("antiDeleteMessages", _antiDeleteMessages.current());
+	obj.insert("saveEditHistory", _saveEditHistory.current());
 	obj.insert("socialLinkFixer", _socialLinkFixer.current());
 	obj.insert("showSecondsInTime", _showSecondsInTime.current());
 	obj.insert("customBadgesEnabled", _customBadgesEnabled.current());

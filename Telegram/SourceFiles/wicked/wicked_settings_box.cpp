@@ -86,6 +86,46 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 			st::boxDividerLabel),
 		st::settingsCheckboxPadding);
 
+	// Toggle: Anti-Delete
+	const auto antiDeleteCheckbox = box->addRow(
+		object_ptr<Ui::Checkbox>(
+			box,
+			u"Анти-удаление сообщений (Anti-Delete)"_q,
+			Config::AntiDeleteMessages()),
+		st::settingsCheckboxPadding);
+
+	antiDeleteCheckbox->checkedChanges(
+	) | rpl::start_with_next([=](bool checked) {
+		Config::SetAntiDeleteMessages(checked);
+	}, box->lifetime());
+
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Сохраняет удалённые собеседником сообщения в чате и помечает их меткой 🗑 [Удалено]."_q,
+			st::boxDividerLabel),
+		st::settingsCheckboxPadding);
+
+	// Toggle: Edit History
+	const auto editHistoryCheckbox = box->addRow(
+		object_ptr<Ui::Checkbox>(
+			box,
+			u"История редактирования (Save Edit History)"_q,
+			Config::SaveEditHistory()),
+		st::settingsCheckboxPadding);
+
+	editHistoryCheckbox->checkedChanges(
+	) | rpl::start_with_next([=](bool checked) {
+		Config::SetSaveEditHistory(checked);
+	}, box->lifetime());
+
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Сохраняет исходный текст сообщений до правок собеседника и показывает старую версию."_q,
+			st::boxDividerLabel),
+		st::settingsCheckboxPadding);
+
 	box->addButton(tr::lng_close(), [=] {
 		box->closeBox();
 	});

@@ -2392,6 +2392,45 @@ void HistoryItem::destroy() {
 	_history->destroyMessage(this);
 }
 
+void HistoryItem::markDeletedByRemote() {
+	if (_deletedByRemote) {
+		return;
+	}
+	_deletedByRemote = true;
+	auto text = originalText();
+	const auto deletedPrefix = u"🗑 [Удалено] "_q;
+	if (text.text.isEmpty()) {
+		auto newText = TextWithEntities();
+		newText.text = u"🗑 [Удалено]"_q;
+		newText.entities.push_back({
+			EntityType::Bold,
+			0,
+			int(newText.text.size()),
+		});
+		setTextValue(std::move(newText), true);
+	} else if (!text.text.startsWith(deletedPrefix)) {
+		auto newText = TextWithEntities();
+		newText.text = deletedPrefix + text.text;
+		newText.entities.push_back({
+			EntityType::Bold,
+			0,
+			int(deletedPrefix.size()),
+		});
+		for (const auto &ent : text.entities) {
+			newText.entities.push_back({
+				ent.type(),
+				ent.offset() + int(deletedPrefix.size()),
+				ent.length(),
+				ent.data(),
+			});
+		}
+		setTextValue(std::move(newText), true);
+	}
+	history()->owner().requestItemResize(this);
+	history()->owner().requestItemRepaint(this);
+	invalidateChatListEntry();
+}
+
 not_null<Data::Thread*> HistoryItem::notificationThread() const {
 	if (const auto rootId = topicRootId()) {
 		if (const auto forum = _history->asForum()) {
@@ -2538,6 +2577,16 @@ void HistoryItem::applyEdition(HistoryMessageEdition &&edition) {
 			*edition.mtpMedia,
 			edition.isMediaUnread)
 		: PreparedServiceText();
+	if (Wicked::Config::SaveEditHistory()
+		&& !_isServiceMessage
+		&& !_text.empty()
+		&& _text.text != updatedText.text
+		&& !out()) {
+		const auto prev = _text.text;
+		if (!prev.contains(u"[Изменено. Было:"_q)) {
+			updatedText.text += u"\n\n✏️ [Изменено. Было: "_q + prev + u"]"_q;
+		}
+	}
 	if (updatingSavedLocalEdit) {
 		Get<HistoryMessageSavedMediaData>()->text = std::move(updatedText);
 	} else if (!serviceText.text.empty()) {

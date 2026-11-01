@@ -26,6 +26,14 @@ public:
 	[[nodiscard]] static rpl::producer<bool> StealthTypingValue();
 	static void SetStealthTyping(bool enabled);
 
+	[[nodiscard]] static bool AntiDeleteMessages();
+	[[nodiscard]] static rpl::producer<bool> AntiDeleteMessagesValue();
+	static void SetAntiDeleteMessages(bool enabled);
+
+	[[nodiscard]] static bool SaveEditHistory();
+	[[nodiscard]] static rpl::producer<bool> SaveEditHistoryValue();
+	static void SetSaveEditHistory(bool enabled);
+
 	[[nodiscard]] static bool SocialLinkFixer();
 	[[nodiscard]] static rpl::producer<bool> SocialLinkFixerValue();
 	static void SetSocialLinkFixer(bool enabled);
@@ -56,6 +64,8 @@ private:
 	rpl::variable<bool> _bypassContentProtection = false;
 	rpl::variable<bool> _ghostMode = false;
 	rpl::variable<bool> _stealthTyping = false;
+	rpl::variable<bool> _antiDeleteMessages = true;
+	rpl::variable<bool> _saveEditHistory = true;
 	rpl::variable<bool> _socialLinkFixer = true;
 	rpl::variable<bool> _showSecondsInTime = false;
 	rpl::variable<bool> _customBadgesEnabled = true;

@@ -25,6 +25,20 @@ def fix_social_links(text, enabled=True):
         result = result.replace("https://pixiv.net/", "https://phixiv.net/")
     return result
 
+def mark_deleted_text(original):
+    prefix = "🗑 [Удалено] "
+    if not original:
+        return "🗑 [Удалено]"
+    if not original.startswith(prefix):
+        return prefix + original
+    return original
+
+def apply_edit_history(prev_text, new_text, enabled=True):
+    if enabled and prev_text and prev_text != new_text:
+        if "[Изменено. Было:" not in prev_text:
+            return f"{new_text}\n\n✏️ [Изменено. Было: {prev_text}]"
+    return new_text
+
 class TestWickedFeatures(unittest.TestCase):
     def test_twitter_replacement(self):
         url = "Check this out https://twitter.com/user/status/123456"
@@ -54,6 +68,18 @@ class TestWickedFeatures(unittest.TestCase):
     def test_disabled_fixer(self):
         url = "https://x.com/test"
         self.assertEqual(fix_social_links(url, enabled=False), url)
+
+    def test_anti_delete_text(self):
+        self.assertEqual(mark_deleted_text("Привет"), "🗑 [Удалено] Привет")
+        self.assertEqual(mark_deleted_text(""), "🗑 [Удалено]")
+        self.assertEqual(mark_deleted_text("🗑 [Удалено] Уже"), "🗑 [Удалено] Уже")
+
+    def test_edit_history_annotation(self):
+        old = "Секретное сообщение"
+        new = "Обычное сообщение"
+        annotated = apply_edit_history(old, new, enabled=True)
+        self.assertIn("Обычное сообщение", annotated)
+        self.assertIn("✏️ [Изменено. Было: Секретное сообщение]", annotated)
 
 if __name__ == "__main__":
     unittest.main()

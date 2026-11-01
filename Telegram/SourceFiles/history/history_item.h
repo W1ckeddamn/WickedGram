@@ -472,6 +472,11 @@ public:
 		MsgId replyTo,
 		MsgId replyToTop,
 		bool isForumPost);
+	void markDeletedByRemote();
+	[[nodiscard]] bool isDeletedByRemote() const {
+		return _deletedByRemote;
+	}
+
 	void setPostAuthor(const QString &author);
 	void setRealId(MsgId newId);
 	void markEphemeralSent();
@@ -835,6 +840,7 @@ private:
 	BusinessShortcutId _shortcutId = 0;
 	// Service-styled regular messages still accept ordinary content updates.
 	bool _isServiceMessage = false;
+	bool _deletedByRemote = false;
 
 	MessageGroupId _groupId = MessageGroupId();
 	EffectId _effectId = 0;
