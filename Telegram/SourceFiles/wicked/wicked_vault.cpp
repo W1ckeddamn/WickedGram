@@ -6,6 +6,8 @@ an open-source fork of Telegram Desktop.
 
 #include "wicked/wicked_config.h"
 #include "history/history_item.h"
+#include "history/history.h"
+#include "data/data_peer.h"
 #include "data/data_media_types.h"
 #include "data/data_document.h"
 #include "data/data_photo.h"
@@ -72,8 +74,8 @@ bool Vault::IsolateMedia(not_null<HistoryItem*> item) {
 			? (QString::number(document->id) + u".bin"_q)
 			: document->filename();
 		const auto destName = QString::number(peerId)
-			+ u"_" + QString::number(msgId)
-			+ u"_" + fileName;
+			+ u"_"_q + QString::number(msgId)
+			+ u"_"_q + fileName;
 		const auto destPath = vaultDir + destName;
 
 		if (!localPath.isEmpty() && QFile::exists(localPath)) {
@@ -90,7 +92,7 @@ bool Vault::IsolateMedia(not_null<HistoryItem*> item) {
 		}
 	} else if (const auto photo = media->photo()) {
 		const auto destName = QString::number(peerId)
-			+ u"_" + QString::number(msgId)
+			+ u"_"_q + QString::number(msgId)
 			+ u"_photo.jpg"_q;
 		const auto destPath = vaultDir + destName;
 		if (QFile::exists(destPath)) {
