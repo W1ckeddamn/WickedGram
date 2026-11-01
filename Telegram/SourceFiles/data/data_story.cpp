@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "data/data_story.h"
 
+#include "wicked/wicked_config.h"
+
 #include "base/unixtime.h"
 #include "api/api_text_entities.h"
 #include "data/data_document.h"
@@ -434,6 +436,9 @@ StoryPrivacy Story::privacy() const {
 }
 
 bool Story::forbidsForward() const {
+	if (Wicked::Config::BypassContentProtection()) {
+		return false;
+	}
 	return _noForwards;
 }
 

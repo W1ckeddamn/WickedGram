@@ -2493,6 +2493,11 @@ PRIVATE
     window/themes/window_themes_embedded.h
     window/themes/window_themes_generate_name.cpp
     window/themes/window_themes_generate_name.h
+
+    wicked/wicked_config.cpp
+    wicked/wicked_config.h
+    wicked/wicked_settings_box.cpp
+    wicked/wicked_settings_box.h
     apiwrap.cpp
     apiwrap.h
     config.h

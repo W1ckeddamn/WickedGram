@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_inner_widget.h"
 
+#include "wicked/wicked_config.h"
+
 #include "api/api_polls.h"
 #include "chat_helpers/stickers_emoji_pack.h"
 #include "core/application.h"
@@ -3955,11 +3957,17 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 }
 
 bool HistoryInner::hasCopyRestriction(HistoryItem *item) const {
+	if (Wicked::Config::BypassContentProtection()) {
+		return false;
+	}
 	return !_peer->allowsForwarding() || (item && item->forbidsForward());
 }
 
 bool HistoryInner::hasCopyMediaRestriction(
 		not_null<HistoryItem*> item) const {
+	if (Wicked::Config::BypassContentProtection()) {
+		return false;
+	}
 	return hasCopyRestriction(item) || item->forbidsSaving();
 }
 

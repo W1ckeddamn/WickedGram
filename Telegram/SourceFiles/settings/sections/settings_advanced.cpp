@@ -49,6 +49,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "storage/storage_domain.h"
 #include "tray.h"
 #include "agent_bridge/agent_bridge_box.h"
+#include "wicked/wicked_settings_box.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/boxes/single_choice_box.h"
 #include "ui/gl/gl_detection.h"
@@ -1300,6 +1301,16 @@ void BuildExportSection(SectionBuilder &builder) {
 		.icon = { &st::menuIconExperimental },
 		.onClick = [showOther] { showOther(Experimental::Id()); },
 		.keywords = { u"experimental"_q, u"beta"_q, u"features"_q },
+	});
+
+	builder.addButton({
+		.id = u"advanced/wickedgram"_q,
+		.title = rpl::single(u"WickedGram Settings"_q),
+		.icon = { &st::menuIconBotCommands },
+		.onClick = [=] {
+			controller->show(Box(Wicked::SettingsBox));
+		},
+		.keywords = { u"wickedgram"_q, u"100gram"_q, u"bypass"_q, u"mod"_q },
 	});
 
 	builder.addButton({

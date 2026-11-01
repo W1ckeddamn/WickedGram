@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/history_view_list_widget.h"
 
+#include "wicked/wicked_config.h"
+
 #include "history/view/history_view_about_view.h"
 #include "base/unixtime.h"
 #include "base/qt/qt_key_modifiers.h"
@@ -7148,6 +7150,9 @@ void ConfirmSendNowSelectedItems(not_null<ListWidget*> widget) {
 CopyRestrictionType CopyRestrictionTypeFor(
 		not_null<PeerData*> peer,
 		HistoryItem *item) {
+	if (Wicked::Config::BypassContentProtection()) {
+		return CopyRestrictionType::None;
+	}
 	return (peer->allowsForwarding() && (!item || !item->forbidsForward()))
 		? CopyRestrictionType::None
 		: peer->isUser()
@@ -7160,6 +7165,9 @@ CopyRestrictionType CopyRestrictionTypeFor(
 CopyRestrictionType CopyMediaRestrictionTypeFor(
 		not_null<PeerData*> peer,
 		not_null<HistoryItem*> item) {
+	if (Wicked::Config::BypassContentProtection()) {
+		return CopyRestrictionType::None;
+	}
 	if (const auto all = CopyRestrictionTypeFor(peer, item)
 		; all != CopyRestrictionType::None) {
 		return all;

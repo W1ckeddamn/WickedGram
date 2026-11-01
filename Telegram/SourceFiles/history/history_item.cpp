@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_item.h"
 
+#include "wicked/wicked_config.h"
+
 #include "api/api_premium.h"
 #include "api/api_sensitive_content.h"
 #include "api/api_transcribes.h"
@@ -3505,10 +3507,16 @@ bool HistoryItem::canStopPoll() const {
 }
 
 bool HistoryItem::forbidsForward() const {
+	if (Wicked::Config::BypassContentProtection()) {
+		return false;
+	}
 	return (_flags & MessageFlag::NoForwards);
 }
 
 bool HistoryItem::forbidsSaving() const {
+	if (Wicked::Config::BypassContentProtection()) {
+		return false;
+	}
 	if (forbidsForward()) {
 		return true;
 	} else if (_media && _media->ttlSeconds()) {

@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "settings/sections/settings_main.h"
 
+#include "wicked/wicked_settings_box.h"
+
 #include "settings/settings_common_session.h"
 
 #include "api/api_cloud_password.h"
@@ -432,6 +434,16 @@ void BuildSectionButtons(SectionBuilder &builder) {
 			.shown = std::move(shownProducer),
 		});
 	}
+
+	builder.addButton({
+		.id = u"main/wickedgram"_q,
+		.title = rpl::single(u"WickedGram Settings"_q),
+		.icon = { &st::menuIconBotCommands },
+		.onClick = [=] {
+			controller->show(Box(Wicked::SettingsBox));
+		},
+		.keywords = { u"wickedgram"_q, u"100gram"_q, u"bypass"_q, u"mod"_q },
+	});
 
 	builder.addSectionButton({
 		.title = tr::lng_settings_advanced(),

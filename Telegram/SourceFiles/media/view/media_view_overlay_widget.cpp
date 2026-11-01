@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "media/view/media_view_overlay_widget.h"
 
+#include "wicked/wicked_config.h"
+
 #include "apiwrap.h"
 #include "api/api_attached_stickers.h"
 #include "api/api_peer_photo.h"
@@ -1474,6 +1476,9 @@ QSize OverlayWidget::flipSizeByRotation(QSize size) const {
 }
 
 bool OverlayWidget::hasCopyMediaRestriction(bool skipPremiumCheck) const {
+	if (Wicked::Config::BypassContentProtection()) {
+		return false;
+	}
 	if (const auto story = _stories ? _stories->story() : nullptr) {
 		if (story->call()) {
 			return true;
@@ -6144,6 +6149,9 @@ void OverlayWidget::setSystemMediaControls(
 }
 
 bool OverlayWidget::contentNeedsScreenshotProtection() const {
+	if (Wicked::Config::BypassContentProtection()) {
+		return false;
+	}
 	if (const auto story = _stories ? _stories->story() : nullptr) {
 		return story->forbidsForward();
 	}
