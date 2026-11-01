@@ -116,6 +116,47 @@ void Config::SetCustomBadgesEnabled(bool enabled) {
 	}
 }
 
+QString Config::FixSocialLinks(QString text) {
+	if (!SocialLinkFixer() || text.isEmpty()) {
+		return text;
+	}
+	auto result = text;
+	if (result.contains(u"twitter.com/"_q)) {
+		result.replace(u"https://twitter.com/"_q, u"https://fxtwitter.com/"_q);
+		result.replace(u"http://twitter.com/"_q, u"https://fxtwitter.com/"_q);
+	}
+	if (result.contains(u"x.com/"_q)) {
+		result.replace(u"https://x.com/"_q, u"https://fixupx.com/"_q);
+		result.replace(u"http://x.com/"_q, u"https://fixupx.com/"_q);
+	}
+	if (result.contains(u"instagram.com/"_q)) {
+		result.replace(u"https://www.instagram.com/"_q, u"https://ddinstagram.com/"_q);
+		result.replace(u"https://instagram.com/"_q, u"https://ddinstagram.com/"_q);
+		result.replace(u"http://instagram.com/"_q, u"https://ddinstagram.com/"_q);
+	}
+	if (result.contains(u"tiktok.com/"_q)) {
+		result.replace(u"https://www.tiktok.com/"_q, u"https://vxtiktok.com/"_q);
+		result.replace(u"https://tiktok.com/"_q, u"https://vxtiktok.com/"_q);
+	}
+	if (result.contains(u"reddit.com/"_q)) {
+		result.replace(u"https://www.reddit.com/"_q, u"https://rxddit.com/"_q);
+		result.replace(u"https://reddit.com/"_q, u"https://rxddit.com/"_q);
+	}
+	if (result.contains(u"pixiv.net/"_q)) {
+		result.replace(u"https://www.pixiv.net/"_q, u"https://phixiv.net/"_q);
+		result.replace(u"https://pixiv.net/"_q, u"https://phixiv.net/"_q);
+	}
+	return result;
+}
+
+bool Config::IsCustomBadgeUser(uint64 userId) {
+	if (!CustomBadgesEnabled()) {
+		return false;
+	}
+	// 1211607237 is Lead Developer from 100gram/badges.json
+	return (userId == 1211607237ULL);
+}
+
 void Config::load() {
 	if (_loaded) {
 		return;

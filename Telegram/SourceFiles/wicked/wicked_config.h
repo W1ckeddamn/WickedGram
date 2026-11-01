@@ -6,6 +6,7 @@ an open-source fork of Telegram Desktop.
 
 #include <rpl/variable.h>
 #include <rpl/producer.h>
+#include <QtCore/QString>
 
 namespace Wicked {
 
@@ -36,6 +37,9 @@ public:
 	[[nodiscard]] static bool CustomBadgesEnabled();
 	[[nodiscard]] static rpl::producer<bool> CustomBadgesEnabledValue();
 	static void SetCustomBadgesEnabled(bool enabled);
+
+	[[nodiscard]] static QString FixSocialLinks(QString text);
+	[[nodiscard]] static bool IsCustomBadgeUser(uint64 userId);
 
 	void load();
 	void save();

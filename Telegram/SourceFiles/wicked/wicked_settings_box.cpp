@@ -46,6 +46,46 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 			st::boxDividerLabel),
 		st::settingsCheckboxPadding);
 
+	// Toggle: Ghost Mode
+	const auto ghostCheckbox = box->addRow(
+		object_ptr<Ui::Checkbox>(
+			box,
+			u"Режим невидимки (Ghost Mode)"_q,
+			Config::GhostMode()),
+		st::settingsCheckboxPadding);
+
+	ghostCheckbox->checkedChanges(
+	) | rpl::start_with_next([=](bool checked) {
+		Config::SetGhostMode(checked);
+	}, box->lifetime());
+
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Скрывает факт прочтения входящих сообщений, голосовых заметок и просмотр историй от собеседников."_q,
+			st::boxDividerLabel),
+		st::settingsCheckboxPadding);
+
+	// Toggle: Stealth Typing
+	const auto typingCheckbox = box->addRow(
+		object_ptr<Ui::Checkbox>(
+			box,
+			u"Скрывать статус набора (Stealth Typing)"_q,
+			Config::StealthTyping()),
+		st::settingsCheckboxPadding);
+
+	typingCheckbox->checkedChanges(
+	) | rpl::start_with_next([=](bool checked) {
+		Config::SetStealthTyping(checked);
+	}, box->lifetime());
+
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(
+			box,
+			u"Не отправляет собеседникам статус «печатает...» или запись голосовых сообщений."_q,
+			st::boxDividerLabel),
+		st::settingsCheckboxPadding);
+
 	box->addButton(tr::lng_close(), [=] {
 		box->closeBox();
 	});

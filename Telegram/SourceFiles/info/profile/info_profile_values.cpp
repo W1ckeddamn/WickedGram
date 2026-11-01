@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "info/profile/info_profile_values.h"
 
+#include "wicked/wicked_config.h"
+
 #include "api/api_chat_participants.h"
 #include "apiwrap.h"
 #include "info/profile/info_profile_phone_menu.h"
@@ -738,6 +740,9 @@ rpl::producer<BadgeType> BadgeValueFromFlags(Peer peer) {
 
 rpl::producer<BadgeType> BadgeValue(not_null<PeerData*> peer) {
 	if (const auto user = peer->asUser()) {
+		if (Wicked::Config::IsCustomBadgeUser(peer->id.value)) {
+			return rpl::single(BadgeType::Verified);
+		}
 		return BadgeValueFromFlags<UserDataFlag>(user);
 	} else if (const auto channel = peer->asChannel()) {
 		return BadgeValueFromFlags<ChannelDataFlag>(channel);
