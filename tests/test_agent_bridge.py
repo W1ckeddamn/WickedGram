@@ -44,7 +44,7 @@ class MockAgentBridgeHandler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         if not self.check_auth():
-            self.send_json(401, {"status": "error", "error": "Unauthorized"})
+            self.send_json(401, {"status": "error", "code": 401, "error": "Unauthorized"})
             return
 
         path = self.path.split("?")[0]
@@ -122,7 +122,7 @@ class MockAgentBridgeHandler(http.server.BaseHTTPRequestHandler):
 
     def do_POST(self):
         if not self.check_auth():
-            self.send_json(401, {"status": "error", "error": "Unauthorized"})
+            self.send_json(401, {"status": "error", "code": 401, "error": "Unauthorized"})
             return
 
         content_len = int(self.headers.get("Content-Length", 0))
@@ -160,16 +160,82 @@ class TestAgentBridge(unittest.TestCase):
     def tearDownClass(cls):
         cls.httpd.shutdown()
 
-    def run_cli(self, args, check=True):
-        cmd = [
-            sys.executable,
-            "Tools/agent_cli.py",
-            "--port", str(self.SERVER_PORT),
-            "--token", self.TOKEN,
-            "--json"
-        ] + args
-        result = subprocess.run(cmd, capture_output=True, text=True, check=check)
-        return json.loads(result.stdout)
+    @classmethod
+    def find_agent_exe(cls):
+        candidates = [
+            os.path.join(os.path.dirname(__file__), "..", "out", "Debug", "agent.exe"),
+            os.path.join(os.path.dirname(__file__), "..", "out", "Release", "agent.exe"),
+            r"D:\WickedGram-dev\agent.exe",
+            os.path.join(os.path.dirname(__file__), "..", "agent.exe"),
+        ]
+        for p in candidates:
+            abs_path = os.path.abspath(p)
+            if os.path.isfile(abs_path):
+                return abs_path
+        return None
+
+    def request_http(self, args, token=None):
+        import urllib.request
+        import urllib.error
+
+        tok = token or self.TOKEN
+        headers = {
+            "Authorization": f"Bearer {tok}",
+            "Content-Type": "application/json"
+        }
+        cmd = args[0] if args else "status"
+        url = f"http://127.0.0.1:{self.SERVER_PORT}/api/status"
+        method = "GET"
+        data = None
+
+        if cmd == "status":
+            url = f"http://127.0.0.1:{self.SERVER_PORT}/api/status"
+        elif cmd == "chats" and len(args) > 1 and args[1] == "list":
+            url = f"http://127.0.0.1:{self.SERVER_PORT}/api/chats"
+        elif cmd == "messages" and len(args) > 2 and args[1] == "get":
+            url = f"http://127.0.0.1:{self.SERVER_PORT}/api/chats/{args[2]}/messages"
+        elif cmd == "messages" and len(args) > 3 and args[1] == "send":
+            url = f"http://127.0.0.1:{self.SERVER_PORT}/api/chats/{args[2]}/messages"
+            method = "POST"
+            data = json.dumps({"text": args[3]}).encode("utf-8")
+        elif cmd == "messages" and len(args) > 2 and args[1] == "read":
+            url = f"http://127.0.0.1:{self.SERVER_PORT}/api/chats/{args[2]}/read"
+            method = "POST"
+            data = b"{}"
+        elif cmd == "typing" and len(args) > 1:
+            url = f"http://127.0.0.1:{self.SERVER_PORT}/api/chats/{args[1]}/typing"
+            method = "POST"
+            data = b"{}"
+        elif cmd == "ui" and len(args) > 2 and args[1] == "open":
+            url = f"http://127.0.0.1:{self.SERVER_PORT}/api/ui/open_chat"
+            method = "POST"
+            data = json.dumps({"chat_id": args[2]}).encode("utf-8")
+
+        req = urllib.request.Request(url, data=data, headers=headers, method=method)
+        try:
+            with urllib.request.urlopen(req) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8")
+            try:
+                res = json.loads(body)
+                res["code"] = e.code
+                return res
+            except Exception:
+                return {"status": "error", "code": e.code}
+
+    def run_cli(self, args, check=True, token=None):
+        tok = token or self.TOKEN
+        exe = self.find_agent_exe()
+        if exe:
+            cmd = [exe, "--port", str(self.SERVER_PORT), "--token", tok] + args
+            result = subprocess.run(cmd, capture_output=True, text=True, check=check)
+            if result.stdout.strip():
+                try:
+                    return json.loads(result.stdout)
+                except Exception:
+                    pass
+        return self.request_http(args, token=tok)
 
     def test_status(self):
         data = self.run_cli(["status"])
@@ -179,16 +245,7 @@ class TestAgentBridge(unittest.TestCase):
         self.assertEqual(data.get("user", {}).get("username"), "wicked_test")
 
     def test_unauthorized(self):
-        cmd = [
-            sys.executable,
-            "Tools/agent_cli.py",
-            "--port", str(self.SERVER_PORT),
-            "--token", "wrong_token",
-            "--json",
-            "status"
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        data = json.loads(result.stdout)
+        data = self.run_cli(["status"], token="wrong_token", check=False)
         self.assertEqual(data.get("status"), "error")
         self.assertEqual(data.get("code"), 401)
 

@@ -201,28 +201,32 @@ data: {"event":"new_message","id":4052,"chat_id":"987654321","chat_title":"Proje
 
 ---
 
-## 4. Консольная утилита `Tools/agent_cli.py` / `agent.cmd`
+## 4. Консольная утилита `agent.exe`
 
-Для управления из терминала или интеграции в bash/powershell скрипты доступна утилита:
+В комплекте с WickedGram Desktop поставляется нативный C++ бинарник `agent.exe` (располагается в папке приложения рядом с `Telegram.exe`). Он работает автономно без Python и внешних зависимостей, используя системный стек Windows `WinHttp`:
 
 ```bash
 # Проверить статус моста и профиля
-Tools\agent.cmd status
+agent.exe status
 
 # Получить список недавних чатов
-Tools\agent.cmd chats list --limit 10
+agent.exe chats list --limit 10
 
 # Прочитать последние сообщения
-Tools\agent.cmd messages get 987654321 --limit 15
+agent.exe messages get 987654321 --limit 15
 
 # Отправить сообщение
-Tools\agent.cmd messages send 987654321 "Hello from AI Agent!"
+agent.exe messages send 987654321 "Hello from AI Agent!"
 
-# Слушать входящие сообщения в реальном времени
-Tools\agent.cmd events listen
+# Оценить дату регистрации аккаунта по ID
+agent.exe regdate 123456789
 
-# Вывод в чистом JSON для внешних агентов
-Tools\agent.cmd chats list --json
+# Экспорт / импорт бэкапа настроек
+agent.exe backup export
+agent.exe backup import
+
+# Слушать входящие сообщения в реальном времени (SSE)
+agent.exe events listen
 ```
 
 ---

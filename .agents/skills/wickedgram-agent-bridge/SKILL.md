@@ -1,12 +1,14 @@
 ---
 name: wickedgram-agent-bridge
-description: Control running WickedGram Desktop client via local AI Agent Bridge (HTTP REST & SSE). Read dialogs, fetch messages, send replies, mark read, send typing indicator, monitor live events, calculate registration dates, and manage backups.
-allowed-tools: run_command(Tools/agent.cmd:*), run_command(python Tools/agent_cli.py:*)
+description: Control running WickedGram Desktop client via native agent.exe CLI (HTTP REST & SSE). Read dialogs, fetch messages, send replies, mark read, send typing indicator, monitor live events, calculate registration dates, and manage backups.
+allowed-tools: run_command(agent.exe:*), run_command(Tools/agent.exe:*)
 ---
 
 # WickedGram AI Agent Bridge
 
-This skill enables external AI agents (Antigravity, Claude, AutoGPT, Python scripts) to interact directly with an active **WickedGram Desktop** instance through its built-in local HTTP/SSE Bridge (`127.0.0.1:40404`).
+This skill enables external AI agents (Antigravity, Claude, AutoGPT) to interact directly with an active **WickedGram Desktop** instance through the native **`agent.exe`** CLI and its built-in local HTTP/SSE Bridge (`127.0.0.1:40404`).
+
+**100% Native C++ (Zero Dependencies):** No Python or external runtimes required. `agent.exe` is bundled directly alongside `WickedGram.exe` in the release archive.
 
 ## Capabilities
 
@@ -15,7 +17,7 @@ This skill enables external AI agents (Antigravity, Claude, AutoGPT, Python scri
 - **Messages**: Read recent chat history, send text messages, reply to specific messages, and mark chats as read.
 - **Real-Time Stream (SSE)**: Subscribe to Server-Sent Events for instant notification of new incoming and outgoing messages.
 - **Account Intelligence**: Estimate Telegram user account registration date and timestamp from raw User ID.
-- **Settings Backup**: Programmatically export or import encrypted/JSON WickedGram settings and feature toggles.
+- **Settings Backup**: Programmatically export or import WickedGram settings and feature toggles.
 - **Desktop UI Control**: Focus and bring any chat into view in the active Telegram window.
 
 ---
@@ -30,7 +32,7 @@ This skill enables external AI agents (Antigravity, Claude, AutoGPT, Python scri
 
 ## When NOT to Use
 
-- Do **not** use when WickedGram Desktop is stopped or not yet started (the bridge runs inside the client process).
+- Do **not** use when WickedGram Desktop is stopped (the bridge runs inside the client process).
 - Do **not** use for modifying source code or compiling the project.
 - Do **not** use for raw MTProto network attacks; all operations flow through the official desktop client session with full UI safety.
 
@@ -41,7 +43,7 @@ This skill enables external AI agents (Antigravity, Claude, AutoGPT, Python scri
 The bridge server binds to `127.0.0.1:40404` by default.
 Authorization uses Bearer tokens.
 
-1. **Automatic Discovery**: `Tools/agent.cmd` automatically detects the token and port from `tdata/wickedgram_agent.json`.
+1. **Automatic Discovery**: `agent.exe` automatically detects the token and port from `tdata/wickedgram_agent.json`.
 2. **Manual Override**: Provide `--port <PORT>` and `--token <TOKEN>` or set environment variables:
    - `WICKEDGRAM_AGENT_PORT`
    - `WICKEDGRAM_AGENT_TOKEN`
@@ -52,11 +54,11 @@ Authorization uses Bearer tokens.
 
 ## Quick Reference Commands
 
-All commands support the `--json` flag for easy parsing by AI agents.
+All commands output structured JSON by default for fast, reliable parsing by AI agents.
 
 ### 1. Check Status & Active User
 ```bash
-Tools\agent.cmd status --json
+agent.exe status
 ```
 Example response:
 ```json
@@ -78,44 +80,44 @@ Example response:
 ### 2. List Chats & Search
 ```bash
 # List up to 20 recent chats
-Tools\agent.cmd chats list --limit 20 --json
+agent.exe chats list --limit 20
 
 # Search chats by title or username
-Tools\agent.cmd chats list --query "Support" --json
+agent.exe chats list --query "Support"
 ```
 
 ### 3. Read Messages from Chat
 ```bash
-Tools\agent.cmd messages get <chat_id> --limit 30 --json
+agent.exe messages get <chat_id> --limit 30
 ```
 
 ### 4. Send a Message or Reply
 ```bash
 # Send regular message
-Tools\agent.cmd messages send <chat_id> "Hello from AI Agent" --json
+agent.exe messages send <chat_id> "Hello from AI Agent"
 
 # Reply to a specific message ID
-Tools\agent.cmd messages send <chat_id> "Acknowledged" --reply-to <message_id> --json
+agent.exe messages send <chat_id> "Acknowledged" --reply-to <message_id>
 ```
 
 ### 5. Mark Messages as Read
 ```bash
-Tools\agent.cmd messages read <chat_id> --json
+agent.exe messages read <chat_id>
 ```
 
 ### 6. Send Typing Indicator
 ```bash
-Tools\agent.cmd typing <chat_id> --json
+agent.exe typing <chat_id>
 ```
 
 ### 7. Switch UI Focus to Chat
 ```bash
-Tools\agent.cmd ui open <chat_id> --json
+agent.exe ui open <chat_id>
 ```
 
 ### 8. Estimate User Registration Date
 ```bash
-Tools\agent.cmd regdate <user_id> --json
+agent.exe regdate <user_id>
 ```
 Example response:
 ```json
@@ -130,29 +132,29 @@ Example response:
 ### 9. Export & Import Settings Backup
 ```bash
 # Export settings to default backup directory
-Tools\agent.cmd backup export --json
+agent.exe backup export
 
 # Import latest backup automatically
-Tools\agent.cmd backup import --json
+agent.exe backup import
 
 # Import specific backup file
-Tools\agent.cmd backup import --file "C:/path/to/backup.json" --json
+agent.exe backup import --file "C:/path/to/backup.json"
 ```
 
 ### 10. Listen to Real-Time Events (SSE)
 ```bash
 # Stream all incoming/outgoing messages
-Tools\agent.cmd events listen --json
+agent.exe events listen
 
 # Filter events for a single chat
-Tools\agent.cmd events listen --filter-chat <chat_id> --json
+agent.exe events listen --filter-chat <chat_id>
 ```
 
 ---
 
 ## Direct REST API Reference
 
-Agents running in Python or Node.js can also make HTTP requests directly to `http://127.0.0.1:40404` with header `Authorization: Bearer <token>`:
+Agents can also make HTTP requests directly to `http://127.0.0.1:40404` with header `Authorization: Bearer <token>`:
 
 | Endpoint | Method | Params / Body | Description |
 |---|---|---|---|
@@ -168,21 +170,3 @@ Agents running in Python or Node.js can also make HTTP requests directly to `htt
 | `/api/settings/backup/export` | `POST` | — | Export settings to JSON |
 | `/api/settings/backup/import` | `POST` | `{"file_path": "..."}` | Import settings from JSON |
 | `/api/events` | `GET` | (SSE stream) | Server-Sent Events real-time event bus |
-
----
-
-## Common Workflows
-
-### Auto-Response Pattern
-1. Start SSE listener with `Tools\agent.cmd events listen --json`.
-2. On event `new_message`:
-   - Check if message is incoming (`"out": false`).
-   - If response is needed, send typing action: `Tools\agent.cmd typing <chat_id>`.
-   - Send reply: `Tools\agent.cmd messages send <chat_id> "<reply>" --reply-to <message_id>`.
-   - Mark read: `Tools\agent.cmd messages read <chat_id>`.
-
-### Backup Synchronization
-Before applying experimental settings changes:
-1. `Tools\agent.cmd backup export --json`
-2. Apply changes.
-3. If rollback is needed: `Tools\agent.cmd backup import --json`.

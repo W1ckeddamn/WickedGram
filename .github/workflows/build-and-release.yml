@@ -237,16 +237,10 @@ jobs:
           if [ -f "$OUT_DIR/Updater.exe" ]; then
             cp "$OUT_DIR/Updater.exe" "$DIST_DIR/Updater.exe"
           fi
+          # Bundle native C++ AI Agent CLI
           if [ -f "$OUT_DIR/agent.exe" ]; then
             cp "$OUT_DIR/agent.exe" "$DIST_DIR/agent.exe"
-            cp "$OUT_DIR/agent.exe" "$DIST_DIR/Tools/agent.exe"
           fi
-
-          # Bundle Agent Bridge CLI and convenience launcher
-          mkdir -p "$DIST_DIR/Tools"
-          cp "$TBUILD/$REPO_NAME/Tools/agent_cli.py" "$DIST_DIR/Tools/"
-          cp "$TBUILD/$REPO_NAME/Tools/agent.cmd" "$DIST_DIR/Tools/"
-          cp "$TBUILD/$REPO_NAME/Tools/agent.cmd" "$DIST_DIR/agent.cmd"
 
           # Bundle Agent skill for AI assistants (Antigravity, Claude Code, Cursor)
           mkdir -p "$DIST_DIR/.agents/skills/wickedgram-agent-bridge"
