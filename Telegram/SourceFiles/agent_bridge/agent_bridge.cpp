@@ -245,7 +245,7 @@ HttpResponse Bridge::handleRequest(const HttpRequest &req) {
 		if (req.method != u"POST"_q) {
 			return HttpResponse::Error(405, u"Method Not Allowed: use POST"_q);
 		}
-		const auto path = req.body.value("file_path").toString();
+		auto path = req.body.value("file_path").toString();
 		if (path.isEmpty()) {
 			QDir dir(Wicked::BackupManager::DefaultBackupDirectory());
 			const auto list = dir.entryInfoList(QStringList() << u"*.json"_q, QDir::Files, QDir::Time);

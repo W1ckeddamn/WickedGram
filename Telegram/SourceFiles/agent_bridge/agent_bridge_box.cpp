@@ -49,7 +49,7 @@ void BridgeBox(not_null<Ui::GenericBox*> box) {
 		}
 	};
 
-	const auto statusLabel = box->addRow(
+	box->addRow(
 		object_ptr<Ui::FlatLabel>(
 			box,
 			statusText(),
@@ -64,7 +64,7 @@ void BridgeBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 	descLabel->setTextColorOverride(st::windowSubTextFg->c);
 
-	const auto tokenTitle = box->addRow(
+	box->addRow(
 		object_ptr<Ui::FlatLabel>(
 			box,
 			u"Токен авторизации (Bearer):"_q,
