@@ -216,6 +216,47 @@ def cmd_ui_open(args):
         print(f"[✓] Opened chat {args.chat_id} in WickedGram window")
 
 
+def cmd_regdate(args):
+    port, token = get_connection_info(args)
+    res = api_request(port, token, "GET", "/api/user/regdate", params={"user_id": args.user_id})
+    if args.json:
+        print(json.dumps(res, indent=2, ensure_ascii=False))
+    else:
+        if res.get("status") == "error":
+            print(f"[!] Error: {res.get('error')}", file=sys.stderr)
+            sys.exit(1)
+        print(f"User ID:           {res.get('user_id')}")
+        print(f"Registration Date: {res.get('registration_date')}")
+        print(f"Timestamp:         {res.get('timestamp')}")
+
+
+def cmd_backup_export(args):
+    port, token = get_connection_info(args)
+    res = api_request(port, token, "POST", "/api/settings/backup/export")
+    if args.json:
+        print(json.dumps(res, indent=2, ensure_ascii=False))
+    else:
+        if res.get("status") == "error":
+            print(f"[!] Error: {res.get('error')}", file=sys.stderr)
+            sys.exit(1)
+        print(f"[✓] Settings backup saved to: {res.get('backup_path')}")
+
+
+def cmd_backup_import(args):
+    port, token = get_connection_info(args)
+    body = {}
+    if args.file_path:
+        body["file_path"] = args.file_path
+    res = api_request(port, token, "POST", "/api/settings/backup/import", body=body)
+    if args.json:
+        print(json.dumps(res, indent=2, ensure_ascii=False))
+    else:
+        if res.get("status") == "error":
+            print(f"[!] Error: {res.get('error')}", file=sys.stderr)
+            sys.exit(1)
+        print(f"[✓] Settings backup imported from: {res.get('imported_from')}")
+
+
 def cmd_events_listen(args):
     port, token = get_connection_info(args)
     url = f"http://127.0.0.1:{port}/api/events?token={urllib.parse.quote(token)}"
@@ -324,6 +365,22 @@ def main():
     p_events_listen = events_sub.add_parser("listen", help="Listen to incoming messages")
     p_events_listen.add_argument("--filter-chat", type=str, help="Filter by specific chat ID")
     p_events_listen.set_defaults(func=cmd_events_listen)
+
+    # regdate
+    p_reg = subparsers.add_parser("regdate", help="Estimate Telegram user registration date")
+    p_reg.add_argument("user_id", type=int, help="Telegram User ID")
+    p_reg.set_defaults(func=cmd_regdate)
+
+    # backup
+    p_backup = subparsers.add_parser("backup", help="Settings backup import/export")
+    backup_sub = p_backup.add_subparsers(dest="subcommand", required=True)
+
+    p_backup_export = backup_sub.add_parser("export", help="Export settings to JSON file")
+    p_backup_export.set_defaults(func=cmd_backup_export)
+
+    p_backup_import = backup_sub.add_parser("import", help="Import settings from JSON file")
+    p_backup_import.add_argument("--file", dest="file_path", type=str, help="Path to backup JSON file")
+    p_backup_import.set_defaults(func=cmd_backup_import)
 
     args = parser.parse_args()
     args.func(args)
