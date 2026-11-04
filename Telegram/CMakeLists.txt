@@ -2996,6 +2996,20 @@ elseif (build_winstore)
     )
 endif()
 
+if (WIN32)
+    add_executable(agent
+        SourceFiles/agent_cli/main.cpp
+    )
+    target_link_libraries(agent
+        PRIVATE
+            winhttp
+    )
+    set_target_properties(agent PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${output_folder}
+    )
+    add_dependencies(Telegram agent)
+endif()
+
 if (LINUX AND DESKTOP_APP_USE_PACKAGED)
     include(GNUInstallDirs)
     configure_file("../lib/xdg/org.telegram.desktop.service" "${CMAKE_CURRENT_BINARY_DIR}/org.telegram.desktop.service" @ONLY)

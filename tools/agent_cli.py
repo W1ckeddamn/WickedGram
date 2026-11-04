@@ -303,89 +303,109 @@ def cmd_events_listen(args):
         sys.exit(1)
 
 
-def main():
-    common = argparse.ArgumentParser(add_help=False)
-    common.add_argument("--port", type=int, help="WickedGram Agent Bridge port (default: 40404)")
-    common.add_argument("--token", type=str, help="Bearer authorization token")
-    common.add_argument("--json", action="store_true", help="Output raw JSON for agent/machine processing")
+def reorder_argv(argv):
+    flags = []
+    rest = []
+    i = 0
+    while i < len(argv):
+        arg = argv[i]
+        if arg in ('--json', '-h', '--help'):
+            flags.append(arg)
+            i += 1
+        elif arg in ('--port', '--token') and i + 1 < len(argv):
+            flags.extend([arg, argv[i + 1]])
+            i += 2
+        elif arg.startswith('--port=') or arg.startswith('--token='):
+            flags.append(arg)
+            i += 1
+        else:
+            rest.append(arg)
+            i += 1
+    return flags + rest
 
-    parser = argparse.ArgumentParser(description="WickedGram AI Agent Controller", parents=[common])
+
+def main():
+    parser = argparse.ArgumentParser(description="WickedGram AI Agent Controller")
+    parser.add_argument("--port", type=int, help="WickedGram Agent Bridge port (default: 40404)")
+    parser.add_argument("--token", type=str, help="Bearer authorization token")
+    parser.add_argument("--json", action="store_true", help="Output raw JSON for agent/machine processing")
+
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # status
-    p_status = subparsers.add_parser("status", help="Get client and bridge status", parents=[common])
+    p_status = subparsers.add_parser("status", help="Get client and bridge status")
     p_status.set_defaults(func=cmd_status)
 
     # chats
-    p_chats = subparsers.add_parser("chats", help="Chat management", parents=[common])
+    p_chats = subparsers.add_parser("chats", help="Chat management")
     chats_sub = p_chats.add_subparsers(dest="subcommand", required=True)
 
-    p_chats_list = chats_sub.add_parser("list", help="List recent dialogs", parents=[common])
+    p_chats_list = chats_sub.add_parser("list", help="List recent dialogs")
     p_chats_list.add_argument("--limit", type=int, default=50, help="Max chats to return")
     p_chats_list.add_argument("--query", type=str, help="Search filter")
     p_chats_list.set_defaults(func=cmd_chats_list)
 
-    p_chats_get = chats_sub.add_parser("get", help="Get single chat info", parents=[common])
+    p_chats_get = chats_sub.add_parser("get", help="Get single chat info")
     p_chats_get.add_argument("chat_id", type=str, help="Target chat/peer ID")
     p_chats_get.set_defaults(func=cmd_chats_get)
 
     # messages
-    p_msg = subparsers.add_parser("messages", help="Message operations", parents=[common])
+    p_msg = subparsers.add_parser("messages", help="Message operations")
     msg_sub = p_msg.add_subparsers(dest="subcommand", required=True)
 
-    p_msg_get = msg_sub.add_parser("get", help="Get recent messages in chat", parents=[common])
+    p_msg_get = msg_sub.add_parser("get", help="Get recent messages in chat")
     p_msg_get.add_argument("chat_id", type=str, help="Chat ID")
     p_msg_get.add_argument("--limit", type=int, default=30, help="Max messages to fetch")
     p_msg_get.set_defaults(func=cmd_messages_get)
 
-    p_msg_send = msg_sub.add_parser("send", help="Send a message", parents=[common])
+    p_msg_send = msg_sub.add_parser("send", help="Send a message")
     p_msg_send.add_argument("chat_id", type=str, help="Chat ID")
     p_msg_send.add_argument("text", type=str, help="Message text")
     p_msg_send.add_argument("--reply-to", type=int, help="Reply to message ID")
     p_msg_send.set_defaults(func=cmd_messages_send)
 
-    p_msg_read = msg_sub.add_parser("read", help="Mark chat as read", parents=[common])
+    p_msg_read = msg_sub.add_parser("read", help="Mark chat as read")
     p_msg_read.add_argument("chat_id", type=str, help="Chat ID")
     p_msg_read.set_defaults(func=cmd_messages_read)
 
     # typing
-    p_typing = subparsers.add_parser("typing", help="Send typing status", parents=[common])
+    p_typing = subparsers.add_parser("typing", help="Send typing status")
     p_typing.add_argument("chat_id", type=str, help="Chat ID")
     p_typing.set_defaults(func=cmd_typing)
 
     # ui open
-    p_ui = subparsers.add_parser("ui", help="UI navigation", parents=[common])
+    p_ui = subparsers.add_parser("ui", help="UI navigation")
     ui_sub = p_ui.add_subparsers(dest="subcommand", required=True)
 
-    p_ui_open = ui_sub.add_parser("open", help="Open chat in Telegram window", parents=[common])
+    p_ui_open = ui_sub.add_parser("open", help="Open chat in Telegram window")
     p_ui_open.add_argument("chat_id", type=str, help="Chat ID")
     p_ui_open.set_defaults(func=cmd_ui_open)
 
     # events
-    p_events = subparsers.add_parser("events", help="Real-time events stream (SSE)", parents=[common])
+    p_events = subparsers.add_parser("events", help="Real-time events stream (SSE)")
     events_sub = p_events.add_subparsers(dest="subcommand", required=True)
 
-    p_events_listen = events_sub.add_parser("listen", help="Listen to incoming messages", parents=[common])
+    p_events_listen = events_sub.add_parser("listen", help="Listen to incoming messages")
     p_events_listen.add_argument("--filter-chat", type=str, help="Filter by specific chat ID")
     p_events_listen.set_defaults(func=cmd_events_listen)
 
     # regdate
-    p_reg = subparsers.add_parser("regdate", help="Estimate Telegram user registration date", parents=[common])
+    p_reg = subparsers.add_parser("regdate", help="Estimate Telegram user registration date")
     p_reg.add_argument("user_id", type=int, help="Telegram User ID")
     p_reg.set_defaults(func=cmd_regdate)
 
     # backup
-    p_backup = subparsers.add_parser("backup", help="Settings backup import/export", parents=[common])
+    p_backup = subparsers.add_parser("backup", help="Settings backup import/export")
     backup_sub = p_backup.add_subparsers(dest="subcommand", required=True)
 
-    p_backup_export = backup_sub.add_parser("export", help="Export settings to JSON file", parents=[common])
+    p_backup_export = backup_sub.add_parser("export", help="Export settings to JSON file")
     p_backup_export.set_defaults(func=cmd_backup_export)
 
-    p_backup_import = backup_sub.add_parser("import", help="Import settings from JSON file", parents=[common])
+    p_backup_import = backup_sub.add_parser("import", help="Import settings from JSON file")
     p_backup_import.add_argument("--file", dest="file_path", type=str, help="Path to backup JSON file")
     p_backup_import.set_defaults(func=cmd_backup_import)
 
-    args = parser.parse_args()
+    args = parser.parse_args(reorder_argv(sys.argv[1:]))
     args.func(args)
 
 

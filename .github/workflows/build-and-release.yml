@@ -237,9 +237,24 @@ jobs:
           if [ -f "$OUT_DIR/Updater.exe" ]; then
             cp "$OUT_DIR/Updater.exe" "$DIST_DIR/Updater.exe"
           fi
+          if [ -f "$OUT_DIR/agent.exe" ]; then
+            cp "$OUT_DIR/agent.exe" "$DIST_DIR/agent.exe"
+            cp "$OUT_DIR/agent.exe" "$DIST_DIR/Tools/agent.exe"
+          fi
 
-          cd "$GITHUB_WORKSPACE/dist"
-          7z a -tzip "${DIST_NAME}.zip" "$DIST_NAME"/*
+          # Bundle Agent Bridge CLI and convenience launcher
+          mkdir -p "$DIST_DIR/Tools"
+          cp "$TBUILD/$REPO_NAME/Tools/agent_cli.py" "$DIST_DIR/Tools/"
+          cp "$TBUILD/$REPO_NAME/Tools/agent.cmd" "$DIST_DIR/Tools/"
+          cp "$TBUILD/$REPO_NAME/Tools/agent.cmd" "$DIST_DIR/agent.cmd"
+
+          # Bundle Agent skill for AI assistants (Antigravity, Claude Code, Cursor)
+          mkdir -p "$DIST_DIR/.agents/skills/wickedgram-agent-bridge"
+          cp "$TBUILD/$REPO_NAME/.agents/skills/wickedgram-agent-bridge/SKILL.md" "$DIST_DIR/.agents/skills/wickedgram-agent-bridge/"
+
+          shopt -s dotglob
+          cd "$DIST_DIR"
+          7z a -tzip "$GITHUB_WORKSPACE/dist/${DIST_NAME}.zip" *
 
           ZIP_PATH="$GITHUB_WORKSPACE/dist/${DIST_NAME}.zip"
           ZIP_NAME="${DIST_NAME}.zip"
