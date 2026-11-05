@@ -10,6 +10,8 @@ an open-source fork of Telegram Desktop.
 #include "wicked/wicked_network_boost.h"
 #include "base/timer.h"
 #include "lang/lang_keys.h"
+#include "settings/settings_common.h"
+#include "ui/boxes/confirm_box.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/buttons.h"
@@ -18,32 +20,62 @@ an open-source fork of Telegram Desktop.
 #include "styles/style_boxes.h"
 #include "styles/style_layers.h"
 #include "styles/style_settings.h"
+#include "styles/style_menu_icons.h"
+
+#include <QtCore/QDir>
+#include <QtCore/QPointer>
 
 namespace Wicked {
 
-void SettingsBox(not_null<Ui::GenericBox*> box) {
-	box->setTitle(rpl::single(u"WickedGram Settings"_q));
+namespace {
 
-	// Category: Privacy & Protection
+void AddDescription(not_null<Ui::GenericBox*> box, const QString &text) {
 	box->addRow(
-		object_ptr<Ui::FlatLabel>(
-			box,
-			u"Приватность и защита"_q,
-			st::boxLabel),
+		object_ptr<Ui::FlatLabel>(box, text, st::boxDividerLabel),
 		st::settingsCheckboxPadding);
+}
+
+void AddHeading(not_null<Ui::GenericBox*> box, const QString &text) {
+	box->addSkip(st::defaultSubsectionTitlePadding.top());
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(box, text, st::defaultSubsectionTitle),
+		st::defaultSubsectionTitlePadding);
+}
+
+void PrepareSection(not_null<Ui::GenericBox*> box, const QString &title) {
+	box->setTitle(title);
+	box->setWidth(st::boxWideWidth);
+	box->addButton(rpl::single(u"Назад"_q), [=] {
+		box->closeBox();
+	});
+}
+
+void AddToggle(
+		not_null<Ui::GenericBox*> box,
+		const QString &text,
+		rpl::producer<bool> value,
+		Fn<void(bool)> save) {
+	const auto button = box->addRow(
+		object_ptr<Ui::SettingsButton>(
+			box,
+			rpl::single(text),
+			st::settingsButtonNoIcon),
+		QMargins());
+	button->toggleOn(std::move(value));
+	button->toggledChanges() | rpl::on_next(std::move(save), button->lifetime());
+}
+
+void PrivacyBox(not_null<Ui::GenericBox*> box) {
+	PrepareSection(box, u"Приватность и защита"_q);
+
+	AddHeading(box, u"Сообщения"_q);
 
 	// Toggle: Bypass Content Protection
-	const auto bypassCheckbox = box->addRow(
-		object_ptr<Ui::Checkbox>(
-			box,
-			u"Обход защиты контента (Bypass Content Protection)"_q,
-			Config::BypassContentProtection()),
-		st::settingsCheckboxPadding);
-
-	bypassCheckbox->checkedChanges(
-	) | rpl::on_next([=](bool checked) {
-		Config::SetBypassContentProtection(checked);
-	}, box->lifetime());
+	AddToggle(
+		box,
+		u"Обход защиты контента"_q,
+		Config::BypassContentProtectionValue(),
+		Config::SetBypassContentProtection);
 
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
@@ -53,17 +85,11 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	// Toggle: Ghost Mode
-	const auto ghostCheckbox = box->addRow(
-		object_ptr<Ui::Checkbox>(
-			box,
-			u"Режим невидимки (Ghost Mode)"_q,
-			Config::GhostMode()),
-		st::settingsCheckboxPadding);
-
-	ghostCheckbox->checkedChanges(
-	) | rpl::on_next([=](bool checked) {
-		Config::SetGhostMode(checked);
-	}, box->lifetime());
+	AddToggle(
+		box,
+		u"Режим невидимки"_q,
+		Config::GhostModeValue(),
+		Config::SetGhostMode);
 
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
@@ -73,17 +99,11 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	// Toggle: Stealth Typing
-	const auto typingCheckbox = box->addRow(
-		object_ptr<Ui::Checkbox>(
-			box,
-			u"Скрывать статус набора (Stealth Typing)"_q,
-			Config::StealthTyping()),
-		st::settingsCheckboxPadding);
-
-	typingCheckbox->checkedChanges(
-	) | rpl::on_next([=](bool checked) {
-		Config::SetStealthTyping(checked);
-	}, box->lifetime());
+	AddToggle(
+		box,
+		u"Скрывать статус набора"_q,
+		Config::StealthTypingValue(),
+		Config::SetStealthTyping);
 
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
@@ -93,17 +113,11 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	// Toggle: Anti-Delete
-	const auto antiDeleteCheckbox = box->addRow(
-		object_ptr<Ui::Checkbox>(
-			box,
-			u"Анти-удаление сообщений (Anti-Delete)"_q,
-			Config::AntiDeleteMessages()),
-		st::settingsCheckboxPadding);
-
-	antiDeleteCheckbox->checkedChanges(
-	) | rpl::on_next([=](bool checked) {
-		Config::SetAntiDeleteMessages(checked);
-	}, box->lifetime());
+	AddToggle(
+		box,
+		u"Анти-удаление сообщений"_q,
+		Config::AntiDeleteMessagesValue(),
+		Config::SetAntiDeleteMessages);
 
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
@@ -113,17 +127,11 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	// Toggle: Edit History
-	const auto editHistoryCheckbox = box->addRow(
-		object_ptr<Ui::Checkbox>(
-			box,
-			u"История редактирования (Save Edit History)"_q,
-			Config::SaveEditHistory()),
-		st::settingsCheckboxPadding);
-
-	editHistoryCheckbox->checkedChanges(
-	) | rpl::on_next([=](bool checked) {
-		Config::SetSaveEditHistory(checked);
-	}, box->lifetime());
+	AddToggle(
+		box,
+		u"История редактирования"_q,
+		Config::SaveEditHistoryValue(),
+		Config::SetSaveEditHistory);
 
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
@@ -132,42 +140,26 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 			st::boxDividerLabel),
 		st::settingsCheckboxPadding);
 
+	AddHeading(box, u"Для трансляций"_q);
+
 	// Streamer Mode
-	const auto streamerCheckbox = box->addRow(
-		object_ptr<Ui::Checkbox>(
-			box,
-			u"Режим стримера (Streamer Mode)"_q,
-			Config::StreamerMode()),
-		st::settingsCheckboxPadding);
+	AddToggle(
+		box,
+		u"Режим стримера"_q,
+		Config::StreamerModeValue(),
+		Config::SetStreamerMode);
 
-	streamerCheckbox->checkedChanges(
-	) | rpl::on_next([=](bool checked) {
-		Config::SetStreamerMode(checked);
-	}, box->lifetime());
+	AddToggle(
+		box,
+		u"Скрывать другие аккаунты"_q,
+		Config::StreamerHideOtherAccountsValue(),
+		Config::SetStreamerHideOtherAccounts);
 
-	const auto hideAccountsCheckbox = box->addRow(
-		object_ptr<Ui::Checkbox>(
-			box,
-			u"Скрывать другие аккаунты в меню стримера"_q,
-			Config::StreamerHideOtherAccounts()),
-		st::settingsCheckboxPadding);
-
-	hideAccountsCheckbox->checkedChanges(
-	) | rpl::on_next([=](bool checked) {
-		Config::SetStreamerHideOtherAccounts(checked);
-	}, box->lifetime());
-
-	const auto hidePhonesCheckbox = box->addRow(
-		object_ptr<Ui::Checkbox>(
-			box,
-			u"Скрывать телефонные номера в интерфейсе (+• ••• ••• •• ••)"_q,
-			Config::StreamerHidePhoneNumbers()),
-		st::settingsCheckboxPadding);
-
-	hidePhonesCheckbox->checkedChanges(
-	) | rpl::on_next([=](bool checked) {
-		Config::SetStreamerHidePhoneNumbers(checked);
-	}, box->lifetime());
+	AddToggle(
+		box,
+		u"Скрывать номера телефонов"_q,
+		Config::StreamerHidePhoneNumbersValue(),
+		Config::SetStreamerHidePhoneNumbers);
 
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
@@ -175,27 +167,19 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 			u"Маскирует телефонные номера и скрывает дополнительные аккаунты от случайного показа во время трансляции экрана."_q,
 			st::boxDividerLabel),
 		st::settingsCheckboxPadding);
+}
 
-	// Category: Interface & Enhancements
-	box->addRow(
-		object_ptr<Ui::FlatLabel>(
-			box,
-			u"Интерфейс и улучшения"_q,
-			st::boxLabel),
-		st::settingsCheckboxPadding);
+void InterfaceBox(not_null<Ui::GenericBox*> box) {
+	PrepareSection(box, u"Интерфейс и удобство"_q);
+
+	AddHeading(box, u"Ссылки"_q);
 
 	// Toggle: Social Link Fixer
-	const auto socialCheckbox = box->addRow(
-		object_ptr<Ui::Checkbox>(
-			box,
-			u"Автоисправление ссылок соцсетей (Social Link Fixer)"_q,
-			Config::SocialLinkFixer()),
-		st::settingsCheckboxPadding);
-
-	socialCheckbox->checkedChanges(
-	) | rpl::on_next([=](bool checked) {
-		Config::SetSocialLinkFixer(checked);
-	}, box->lifetime());
+	AddToggle(
+		box,
+		u"Автоисправление ссылок соцсетей"_q,
+		Config::SocialLinkFixerValue(),
+		Config::SetSocialLinkFixer);
 
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
@@ -205,17 +189,11 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	// Toggle: Clean URLs
-	const auto cleanUrlsCheckbox = box->addRow(
-		object_ptr<Ui::Checkbox>(
-			box,
-			u"Очистка ссылок от трекеров и utm-меток (Clean URLs)"_q,
-			Config::CleanUrls()),
-		st::settingsCheckboxPadding);
-
-	cleanUrlsCheckbox->checkedChanges(
-	) | rpl::on_next([=](bool checked) {
-		Config::SetCleanUrls(checked);
-	}, box->lifetime());
+	AddToggle(
+		box,
+		u"Убирать метки отслеживания"_q,
+		Config::CleanUrlsValue(),
+		Config::SetCleanUrls);
 
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
@@ -224,18 +202,14 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 			st::boxDividerLabel),
 		st::settingsCheckboxPadding);
 
-	// Toggle: Lyrics in Player
-	const auto lyricsCheckbox = box->addRow(
-		object_ptr<Ui::Checkbox>(
-			box,
-			u"Тексты песен в плеере (LRCLIB Lyrics)"_q,
-			Config::LyricsInPlayer()),
-		st::settingsCheckboxPadding);
+	AddHeading(box, u"Чаты и плеер"_q);
 
-	lyricsCheckbox->checkedChanges(
-	) | rpl::on_next([=](bool checked) {
-		Config::SetLyricsInPlayer(checked);
-	}, box->lifetime());
+	// Toggle: Lyrics in Player
+	AddToggle(
+		box,
+		u"Тексты песен в плеере"_q,
+		Config::LyricsInPlayerValue(),
+		Config::SetLyricsInPlayer);
 
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
@@ -245,17 +219,11 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	// Toggle: Zalgo Filter
-	const auto zalgoCheckbox = box->addRow(
-		object_ptr<Ui::Checkbox>(
-			box,
-			u"Фильтрация Zalgo-глитчей и RTL-троянов"_q,
-			Config::FilterZalgo()),
-		st::settingsCheckboxPadding);
-
-	zalgoCheckbox->checkedChanges(
-	) | rpl::on_next([=](bool checked) {
-		Config::SetFilterZalgo(checked);
-	}, box->lifetime());
+	AddToggle(
+		box,
+		u"Фильтровать искажения текста"_q,
+		Config::FilterZalgoValue(),
+		Config::SetFilterZalgo);
 
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
@@ -265,43 +233,27 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	// Toggle: Show Seconds in Time
-	const auto secondsCheckbox = box->addRow(
-		object_ptr<Ui::Checkbox>(
-			box,
-			u"Секунды во времени сообщений"_q,
-			Config::ShowSecondsInTime()),
-		st::settingsCheckboxPadding);
+	AddToggle(
+		box,
+		u"Секунды во времени сообщений"_q,
+		Config::ShowSecondsInTimeValue(),
+		Config::SetShowSecondsInTime);
 
-	secondsCheckbox->checkedChanges(
-	) | rpl::on_next([=](bool checked) {
-		Config::SetShowSecondsInTime(checked);
-	}, box->lifetime());
+	AddHeading(box, u"Профили и аккаунты"_q);
 
 	// Toggle: Custom Badges
-	const auto badgesCheckbox = box->addRow(
-		object_ptr<Ui::Checkbox>(
-			box,
-			u"Особые бейджи разработчиков WickedGram"_q,
-			Config::CustomBadgesEnabled()),
-		st::settingsCheckboxPadding);
-
-	badgesCheckbox->checkedChanges(
-	) | rpl::on_next([=](bool checked) {
-		Config::SetCustomBadgesEnabled(checked);
-	}, box->lifetime());
+	AddToggle(
+		box,
+		u"Бейджи разработчиков"_q,
+		Config::CustomBadgesEnabledValue(),
+		Config::SetCustomBadgesEnabled);
 
 	// Toggle: Registration Date
-	const auto regDateCheckbox = box->addRow(
-		object_ptr<Ui::Checkbox>(
-			box,
-			u"Примерная дата регистрации в профиле"_q,
-			Config::ShowRegistrationDate()),
-		st::settingsCheckboxPadding);
-
-	regDateCheckbox->checkedChanges(
-	) | rpl::on_next([=](bool checked) {
-		Config::SetShowRegistrationDate(checked);
-	}, box->lifetime());
+	AddToggle(
+		box,
+		u"Дата регистрации в профиле"_q,
+		Config::ShowRegistrationDateValue(),
+		Config::SetShowRegistrationDate);
 
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
@@ -311,17 +263,11 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	// Toggle: Real Name Cache
-	const auto realNameCheckbox = box->addRow(
-		object_ptr<Ui::Checkbox>(
-			box,
-			u"Кэшировать исходные имена пользователей"_q,
-			Config::ShowOriginalName()),
-		st::settingsCheckboxPadding);
-
-	realNameCheckbox->checkedChanges(
-	) | rpl::on_next([=](bool checked) {
-		Config::SetShowOriginalName(checked);
-	}, box->lifetime());
+	AddToggle(
+		box,
+		u"Сохранять исходные имена"_q,
+		Config::ShowOriginalNameValue(),
+		Config::SetShowOriginalName);
 
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
@@ -331,45 +277,29 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	// Toggle: Unlimited Accounts
-	const auto unlimitedAccountsCheckbox = box->addRow(
-		object_ptr<Ui::Checkbox>(
-			box,
-			u"Снять ограничение на количество аккаунтов (до 100)"_q,
-			Config::UnlimitedAccounts()),
-		st::settingsCheckboxPadding);
-
-	unlimitedAccountsCheckbox->checkedChanges(
-	) | rpl::on_next([=](bool checked) {
-		Config::SetUnlimitedAccounts(checked);
-	}, box->lifetime());
+	AddToggle(
+		box,
+		u"До 100 аккаунтов"_q,
+		Config::UnlimitedAccountsValue(),
+		Config::SetUnlimitedAccounts);
 
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
 			box,
-			u"Позволяет подключать неограниченное число аккаунтов без требования подписки Telegram Premium."_q,
+			u"Позволяет подключить до 100 аккаунтов без подписки Telegram Premium."_q,
 			st::boxDividerLabel),
 		st::settingsCheckboxPadding);
+}
 
-	// Category: Media Vault & Archiver
-	box->addRow(
-		object_ptr<Ui::FlatLabel>(
-			box,
-			u"Хранилище медиа и архиватор (Vault)"_q,
-			st::boxLabel),
-		st::settingsCheckboxPadding);
+void VaultBox(not_null<Ui::GenericBox*> box) {
+	PrepareSection(box, u"Хранилище медиа"_q);
 
 	// Toggle: Auto-Vault
-	const auto autoVaultCheckbox = box->addRow(
-		object_ptr<Ui::Checkbox>(
-			box,
-			u"Авто-сохранение всех входящих медиа (Auto-Vault)"_q,
-			Config::AutoVaultMedia()),
-		st::settingsCheckboxPadding);
-
-	autoVaultCheckbox->checkedChanges(
-	) | rpl::on_next([=](bool checked) {
-		Config::SetAutoVaultMedia(checked);
-	}, box->lifetime());
+	AddToggle(
+		box,
+		u"Автосохранение медиа"_q,
+		Config::AutoVaultMediaValue(),
+		Config::SetAutoVaultMedia);
 
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
@@ -394,11 +324,11 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	const auto rotateBtn = box->addRow(
-		object_ptr<Ui::RoundButton>(
+		object_ptr<Ui::SettingsButton>(
 			box,
-			rpl::single(u"Выполнить очистку по сроку и квоте"_q),
-			st::defaultBoxButton),
-		st::settingsCheckboxPadding);
+			rpl::single(u"Очистить старые файлы"_q),
+			st::settingsButtonNoIcon),
+		QMargins());
 
 	rotateBtn->setClickedCallback([=] {
 		const auto res = Vault::Rotate(Config::VaultTtlDays(), Config::VaultMaxSizeGb());
@@ -410,25 +340,34 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 	});
 
 	const auto clearBtn = box->addRow(
-		object_ptr<Ui::RoundButton>(
+		object_ptr<Ui::SettingsButton>(
 			box,
-			rpl::single(u"Очистить хранилище медиа полностью"_q),
-			st::defaultBoxButton),
-		st::settingsCheckboxPadding);
+			rpl::single(u"Удалить все файлы хранилища"_q),
+			st::settingsAttentionButton),
+		QMargins());
 
 	clearBtn->setClickedCallback([=] {
-		Vault::Clear();
-		vaultStatsLabel->setText(formatStats());
-		Ui::Toast::Show(u"Хранилище медиа очищено"_q);
+		box->show(Ui::MakeConfirmBox({
+			.text = u"Удалить все файлы из хранилища WickedGram? Это действие нельзя отменить."_q,
+			.confirmed = [=, label = QPointer<Ui::FlatLabel>(vaultStatsLabel)](Fn<void()> close) {
+				close();
+				if (!label) {
+					return;
+				}
+				const auto cleared = Vault::Clear();
+				label->setText(formatStats());
+				Ui::Toast::Show(cleared
+					? u"Хранилище медиа очищено"_q
+					: u"Некоторые файлы не удалось удалить"_q);
+			},
+			.confirmText = tr::lng_box_delete(),
+			.confirmStyle = &st::attentionBoxButton,
+		}));
 	});
+}
 
-	// Category: Network Boost & Acceleration
-	box->addRow(
-		object_ptr<Ui::FlatLabel>(
-			box,
-			u"Сеть и ускорение (Network Boost)"_q,
-			st::boxLabel),
-		st::settingsCheckboxPadding);
+void NetworkBox(not_null<Ui::GenericBox*> box) {
+	PrepareSection(box, u"Сеть и загрузки"_q);
 
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
@@ -462,7 +401,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
 			box,
-			u"Ускорение скачивания (Download Boost):"_q,
+			u"Скачивание"_q,
 			st::boxLabel),
 		st::settingsCheckboxPadding);
 
@@ -477,7 +416,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 			box,
 			downloadGroup,
 			NetworkBoostMode::Off,
-			u"Отключено (Стандарт Telegram, 1-4 потока)"_q,
+			u"Стандартный · 1–4 потока"_q,
 			st::defaultBoxCheckbox),
 		st::settingsCheckboxPadding);
 
@@ -486,7 +425,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 			box,
 			downloadGroup,
 			NetworkBoostMode::Fast,
-			u"Быстрый 2x (Ускоренный старт, до 6-8 потоков)"_q,
+			u"Быстрый · до 8 потоков"_q,
 			st::defaultBoxCheckbox),
 		st::settingsCheckboxPadding);
 
@@ -495,7 +434,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 			box,
 			downloadGroup,
 			NetworkBoostMode::Ultra,
-			u"Ультра 4x (Мгновенные 8 потоков, буфер до 8 МБ)"_q,
+			u"Ультра · 8 потоков, буфер 8 МБ"_q,
 			st::defaultBoxCheckbox),
 		st::settingsCheckboxPadding);
 
@@ -503,7 +442,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
 			box,
-			u"Ускорение выгрузки (Upload Boost):"_q,
+			u"Отправка файлов"_q,
 			st::boxLabel),
 		st::settingsCheckboxPadding);
 
@@ -518,7 +457,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 			box,
 			uploadGroup,
 			NetworkBoostMode::Off,
-			u"Отключено (Стандарт Telegram, 1-4 потока)"_q,
+			u"Стандартный · 1–4 потока"_q,
 			st::defaultBoxCheckbox),
 		st::settingsCheckboxPadding);
 
@@ -527,7 +466,7 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 			box,
 			uploadGroup,
 			NetworkBoostMode::Fast,
-			u"Быстрый 2x (До 6 параллельных потоков выгрузки)"_q,
+			u"Быстрый · до 6 потоков"_q,
 			st::defaultBoxCheckbox),
 		st::settingsCheckboxPadding);
 
@@ -536,22 +475,16 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 			box,
 			uploadGroup,
 			NetworkBoostMode::Ultra,
-			u"Ультра 4x (До 8 параллельных потоков выгрузки)"_q,
+			u"Ультра · до 8 потоков"_q,
 			st::defaultBoxCheckbox),
 		st::settingsCheckboxPadding);
 
 	// Toggle: Adaptive File Size Aware
-	const auto adaptiveCheckbox = box->addRow(
-		object_ptr<Ui::Checkbox>(
-			box,
-			u"Адаптивный режим по размеру файлов (File Size Aware)"_q,
-			Config::UploadBoostFileSizeAware()),
-		st::settingsCheckboxPadding);
-
-	adaptiveCheckbox->checkedChanges(
-	) | rpl::on_next([=](bool checked) {
-		Config::SetUploadBoostFileSizeAware(checked);
-	}, box->lifetime());
+	AddToggle(
+		box,
+		u"Учитывать размер файлов"_q,
+		Config::UploadBoostFileSizeAwareValue(),
+		Config::SetUploadBoostFileSizeAware);
 
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
@@ -559,14 +492,10 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 			u"Автоматически выбирает стандартную скорость для небольших файлов (<10 МБ) и максимальный разгон 8 потоков для тяжёлых файлов (>100 МБ)."_q,
 			st::boxDividerLabel),
 		st::settingsCheckboxPadding);
+}
 
-	// Category: Backup & Restore
-	box->addRow(
-		object_ptr<Ui::FlatLabel>(
-			box,
-			u"Резервное копирование (Backup & Restore)"_q,
-			st::boxLabel),
-		st::settingsCheckboxPadding);
+void BackupBox(not_null<Ui::GenericBox*> box) {
+	PrepareSection(box, u"Резервные копии"_q);
 
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
@@ -576,11 +505,11 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	const auto exportBackupBtn = box->addRow(
-		object_ptr<Ui::RoundButton>(
+		object_ptr<Ui::SettingsButton>(
 			box,
-			rpl::single(u"Экспортировать настройки в файл"_q),
-			st::defaultBoxButton),
-		st::settingsCheckboxPadding);
+			rpl::single(u"Сохранить резервную копию"_q),
+			st::settingsButtonNoIcon),
+		QMargins());
 
 	exportBackupBtn->setClickedCallback([=] {
 		const auto path = BackupManager::ExportBackup();
@@ -592,11 +521,11 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 	});
 
 	const auto importBackupBtn = box->addRow(
-		object_ptr<Ui::RoundButton>(
+		object_ptr<Ui::SettingsButton>(
 			box,
-			rpl::single(u"Импортировать настройки из последнего бэкапа"_q),
-			st::defaultBoxButton),
-		st::settingsCheckboxPadding);
+			rpl::single(u"Восстановить последнюю копию"_q),
+			st::settingsButtonNoIcon),
+		QMargins());
 
 	importBackupBtn->setClickedCallback([=] {
 		QDir dir(BackupManager::DefaultBackupDirectory());
@@ -611,6 +540,73 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 			Ui::Toast::Show(u"Не удалось загрузить файл резервной копии"_q);
 		}
 	});
+}
+
+void AddNavigation(
+		not_null<Ui::GenericBox*> box,
+		const QString &title,
+		const QString &description,
+		const style::icon &icon,
+		Fn<void(not_null<Ui::GenericBox*>)> build) {
+	const auto button = box->addRow(
+		Settings::CreateButtonWithIcon(
+			box,
+			rpl::single(title),
+			st::settingsButton,
+			{ .icon = &icon, .type = Settings::IconType::Simple }),
+		QMargins());
+	button->setClickedCallback([=] {
+		box->show(Box(build));
+	});
+	box->addRow(
+		object_ptr<Ui::FlatLabel>(box, description, st::boxDividerLabel),
+		{ st::settingsButton.padding.left(), 0,
+			st::settingsButton.padding.right(),
+			st::settingsCheckboxPadding.bottom() });
+}
+
+} // namespace
+
+void SettingsBox(not_null<Ui::GenericBox*> box) {
+	box->setTitle(u"WickedGram"_q);
+	box->setWidth(st::boxWideWidth);
+	AddDescription(box, u"Настройте мессенджер под себя. Все изменения сохраняются автоматически."_q);
+	box->addSkip(st::defaultSubsectionTitlePadding.top());
+
+	AddNavigation(
+		box,
+		u"Приватность и защита"_q,
+		u"Невидимка, сообщения и режим стримера"_q,
+		st::menuIconStealth,
+		PrivacyBox);
+
+	AddNavigation(
+		box,
+		u"Интерфейс и удобство"_q,
+		u"Ссылки, плеер, профили и аккаунты"_q,
+		st::menuIconPalette,
+		InterfaceBox);
+
+	AddNavigation(
+		box,
+		u"Хранилище медиа"_q,
+		u"Автосохранение файлов и управление местом"_q,
+		st::menuIconArchive,
+		VaultBox);
+
+	AddNavigation(
+		box,
+		u"Сеть и загрузки"_q,
+		u"Режимы ускорения и текущая скорость"_q,
+		st::menuIconDownload,
+		NetworkBox);
+
+	AddNavigation(
+		box,
+		u"Резервные копии"_q,
+		u"Перенос и восстановление настроек"_q,
+		st::menuIconRestore,
+		BackupBox);
 
 	box->addButton(tr::lng_close(), [=] {
 		box->closeBox();
