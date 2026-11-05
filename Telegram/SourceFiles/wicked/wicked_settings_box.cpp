@@ -347,7 +347,7 @@ void VaultBox(not_null<Ui::GenericBox*> box) {
 		QMargins());
 
 	clearBtn->setClickedCallback([=] {
-		box->show(Ui::MakeConfirmBox({
+		box->getDelegate()->show(Ui::MakeConfirmBox({
 			.text = u"Удалить все файлы из хранилища WickedGram? Это действие нельзя отменить."_q,
 			.confirmed = [=, label = QPointer<Ui::FlatLabel>(vaultStatsLabel)](Fn<void()> close) {
 				close();
@@ -556,7 +556,7 @@ void AddNavigation(
 			{ .icon = &icon, .type = Settings::IconType::Simple }),
 		QMargins());
 	button->setClickedCallback([=] {
-		box->show(Box(build));
+		box->getDelegate()->show(Box(build));
 	});
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(box, description, st::boxDividerLabel),
