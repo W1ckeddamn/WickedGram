@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/history_view_about_view.h"
 
+#include "wicked/wicked_config.h"
+
 #include "api/api_peer_colors.h"
 #include "api/api_premium.h"
 #include "api/api_sending.h"
@@ -249,7 +251,8 @@ auto GenerateChatIntro(
 	Element *replacing,
 	const Data::ChatIntro &data,
 	Fn<void(not_null<DocumentData*>)> helloChosen,
-	Fn<void(not_null<DocumentData*>)> sendIntroSticker)
+	Fn<void(not_null<DocumentData*>)> sendIntroSticker,
+	bool hideSticker)
 -> Fn<void(
 		not_null<MediaGeneric*>,
 		Fn<void(std::unique_ptr<MediaGenericPart>)>)> {
@@ -279,6 +282,9 @@ auto GenerateChatIntro(
 		pushText({ description }, title.isEmpty()
 			? st::chatIntroTitleMargin
 			: st::chatIntroMargin);
+		if (hideSticker) {
+			return;
+		}
 		const auto sticker = [=] {
 			using Tag = ChatHelpers::StickerLottieSize;
 			auto sticker = data.sticker;
@@ -880,7 +886,8 @@ void AboutView::make(Data::ChatIntro data, bool preview) {
 			_item.get(),
 			data,
 			helloChosen,
-			sendIntroSticker),
+			sendIntroSticker,
+			!preview && Wicked::Config::DisableGreetingSticker()),
 		HistoryView::MediaGenericDescriptor{
 			.maxWidth = st::chatIntroWidth,
 			.service = true,

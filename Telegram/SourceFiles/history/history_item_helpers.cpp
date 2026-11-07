@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_item_helpers.h"
 
+#include "wicked/wicked_config.h"
+
 #include "api/api_reactions_notify_settings.h"
 #include "api/api_text_entities.h"
 #include "boxes/premium_preview_box.h"
@@ -834,8 +836,15 @@ QDateTime ItemDateTime(not_null<const HistoryItem*> item) {
 	return base::unixtime::parse(item->date());
 }
 
+QString ChatDateText(const QDate &date) {
+	const auto dateText = langDayOfMonthFull(date);
+	return Wicked::Config::ShowWeekdayInDate()
+		? langDayOfWeekFull(date.dayOfWeek()) + u", "_q + dateText
+		: dateText;
+}
+
 QString ItemDateText(not_null<const HistoryItem*> item, bool isUntilOnline) {
-	const auto dateText = langDayOfMonthFull(ItemDateTime(item).date());
+	const auto dateText = ChatDateText(ItemDateTime(item).date());
 	return !item->isScheduled()
 		? dateText
 		: isUntilOnline

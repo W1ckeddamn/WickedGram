@@ -73,6 +73,13 @@ void PrivacyBox(not_null<Ui::GenericBox*> box) {
 
 	AddHeading(box, u"Сообщения"_q);
 
+	AddToggle(
+		box,
+		u"Подтверждать исходящие звонки"_q,
+		Config::ConfirmCallsValue(),
+		Config::SetConfirmCalls);
+	AddDescription(box, u"Перед голосовым или видеозвонком потребуется подтверждение в окне звонка."_q);
+
 	// Toggle: Bypass Content Protection
 	AddToggle(
 		box,
@@ -206,6 +213,23 @@ void InterfaceBox(not_null<Ui::GenericBox*> box) {
 		st::settingsCheckboxPadding);
 
 	AddHeading(box, u"Чаты и плеер"_q);
+
+	AddToggle(
+		box,
+		u"День недели в датах сообщений"_q,
+		Config::ShowWeekdayInDateValue(),
+		Config::SetShowWeekdayInDate);
+	AddToggle(
+		box,
+		u"Скрывать стрелку пересылки"_q,
+		Config::HideShareButtonValue(),
+		Config::SetHideShareButton);
+	AddToggle(
+		box,
+		u"Скрывать приветственный стикер"_q,
+		Config::DisableGreetingStickerValue(),
+		Config::SetDisableGreetingSticker);
+	AddDescription(box, u"Эти три изменения оформления полностью применяются после перезапуска приложения. Пересылка через контекстное меню остаётся доступной."_q);
 
 	// Toggle: Lyrics in Player
 	AddToggle(

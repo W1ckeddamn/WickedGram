@@ -262,6 +262,7 @@ private:
 [[nodiscard]] std::vector<not_null<DocumentData*>> ItemRichPageAudio(
 	not_null<const HistoryItem*> item);
 
+[[nodiscard]] QString ChatDateText(const QDate &date);
 [[nodiscard]] QDateTime ItemDateTime(not_null<const HistoryItem*> item);
 [[nodiscard]] QString ItemDateText(
 	not_null<const HistoryItem*> item,

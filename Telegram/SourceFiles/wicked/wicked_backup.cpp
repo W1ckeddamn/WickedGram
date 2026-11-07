@@ -56,6 +56,11 @@ QString BackupManager::ExportBackup(const QString &destinationPath) {
 	configObj.insert("uploadBoost", int(Config::UploadBoost()));
 	configObj.insert("uploadBoostFileSizeAware", Config::UploadBoostFileSizeAware());
 
+	configObj.insert("confirmCalls", Config::ConfirmCalls());
+	configObj.insert("showWeekdayInDate", Config::ShowWeekdayInDate());
+	configObj.insert("hideShareButton", Config::HideShareButton());
+	configObj.insert("disableGreetingSticker", Config::DisableGreetingSticker());
+
 	QJsonObject root;
 	root.insert("app", "WickedGram");
 	root.insert("schema_version", 1);
@@ -173,6 +178,19 @@ bool BackupManager::ImportBackup(const QString &filePath) {
 	}
 	if (configObj.contains("uploadBoostFileSizeAware")) {
 		Config::SetUploadBoostFileSizeAware(configObj.value("uploadBoostFileSizeAware").toBool(true));
+	}
+
+	if (configObj.value("confirmCalls").isBool()) {
+		Config::SetConfirmCalls(configObj.value("confirmCalls").toBool());
+	}
+	if (configObj.value("showWeekdayInDate").isBool()) {
+		Config::SetShowWeekdayInDate(configObj.value("showWeekdayInDate").toBool());
+	}
+	if (configObj.value("hideShareButton").isBool()) {
+		Config::SetHideShareButton(configObj.value("hideShareButton").toBool());
+	}
+	if (configObj.value("disableGreetingSticker").isBool()) {
+		Config::SetDisableGreetingSticker(configObj.value("disableGreetingSticker").toBool());
 	}
 
 	return true;

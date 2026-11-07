@@ -112,6 +112,22 @@ public:
 	[[nodiscard]] static rpl::producer<bool> UploadBoostFileSizeAwareValue();
 	static void SetUploadBoostFileSizeAware(bool enabled);
 
+	[[nodiscard]] static bool ConfirmCalls();
+	[[nodiscard]] static rpl::producer<bool> ConfirmCallsValue();
+	static void SetConfirmCalls(bool enabled);
+
+	[[nodiscard]] static bool ShowWeekdayInDate();
+	[[nodiscard]] static rpl::producer<bool> ShowWeekdayInDateValue();
+	static void SetShowWeekdayInDate(bool enabled);
+
+	[[nodiscard]] static bool HideShareButton();
+	[[nodiscard]] static rpl::producer<bool> HideShareButtonValue();
+	static void SetHideShareButton(bool enabled);
+
+	[[nodiscard]] static bool DisableGreetingSticker();
+	[[nodiscard]] static rpl::producer<bool> DisableGreetingStickerValue();
+	static void SetDisableGreetingSticker(bool enabled);
+
 	[[nodiscard]] static QString FixSocialLinks(QString text);
 	[[nodiscard]] static QString CleanUrl(QString url);
 	[[nodiscard]] static QString CleanUrlsInText(QString text);
@@ -153,6 +169,11 @@ private:
 	rpl::variable<NetworkBoostMode> _downloadBoost = NetworkBoostMode::Fast;
 	rpl::variable<NetworkBoostMode> _uploadBoost = NetworkBoostMode::Fast;
 	rpl::variable<bool> _uploadBoostFileSizeAware = true;
+
+	rpl::variable<bool> _confirmCalls = false;
+	rpl::variable<bool> _showWeekdayInDate = false;
+	rpl::variable<bool> _hideShareButton = false;
+	rpl::variable<bool> _disableGreetingSticker = false;
 
 	bool _loaded = false;
 };

@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/history_view_message.h"
 
+#include "wicked/wicked_config.h"
+
 #include "api/api_suggest_post.h"
 #include "api/api_transcribes.h"
 #include "base/options.h"
@@ -6026,6 +6028,9 @@ std::optional<QSize> Message::rightActionSize() const {
 }
 
 bool Message::displayFastShare() const {
+	if (Wicked::Config::HideShareButton()) {
+		return false;
+	}
 	const auto item = data();
 	const auto peer = item->history()->peer;
 	if (!item->allowsForward() || IsAnchoredEphemeral(item)) {

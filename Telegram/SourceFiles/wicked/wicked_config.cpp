@@ -27,6 +27,66 @@ QString Config::ConfigPath() {
 	return cWorkingDir() + u"tdata/wickedgram_config.json"_q;
 }
 
+bool Config::ConfirmCalls() {
+	return Instance()._confirmCalls.current();
+}
+
+rpl::producer<bool> Config::ConfirmCallsValue() {
+	return Instance()._confirmCalls.value();
+}
+
+void Config::SetConfirmCalls(bool enabled) {
+	if (Instance()._confirmCalls.current() != enabled) {
+		Instance()._confirmCalls = enabled;
+		Instance().save();
+	}
+}
+
+bool Config::ShowWeekdayInDate() {
+	return Instance()._showWeekdayInDate.current();
+}
+
+rpl::producer<bool> Config::ShowWeekdayInDateValue() {
+	return Instance()._showWeekdayInDate.value();
+}
+
+void Config::SetShowWeekdayInDate(bool enabled) {
+	if (Instance()._showWeekdayInDate.current() != enabled) {
+		Instance()._showWeekdayInDate = enabled;
+		Instance().save();
+	}
+}
+
+bool Config::HideShareButton() {
+	return Instance()._hideShareButton.current();
+}
+
+rpl::producer<bool> Config::HideShareButtonValue() {
+	return Instance()._hideShareButton.value();
+}
+
+void Config::SetHideShareButton(bool enabled) {
+	if (Instance()._hideShareButton.current() != enabled) {
+		Instance()._hideShareButton = enabled;
+		Instance().save();
+	}
+}
+
+bool Config::DisableGreetingSticker() {
+	return Instance()._disableGreetingSticker.current();
+}
+
+rpl::producer<bool> Config::DisableGreetingStickerValue() {
+	return Instance()._disableGreetingSticker.value();
+}
+
+void Config::SetDisableGreetingSticker(bool enabled) {
+	if (Instance()._disableGreetingSticker.current() != enabled) {
+		Instance()._disableGreetingSticker = enabled;
+		Instance().save();
+	}
+}
+
 bool Config::BypassContentProtection() {
 	return Instance()._bypassContentProtection.current();
 }
@@ -599,6 +659,18 @@ void Config::load() {
 	if (obj.contains("uploadBoostFileSizeAware")) {
 		_uploadBoostFileSizeAware = obj.value("uploadBoostFileSizeAware").toBool(true);
 	}
+	if (obj.value("confirmCalls").isBool()) {
+		_confirmCalls = obj.value("confirmCalls").toBool();
+	}
+	if (obj.value("showWeekdayInDate").isBool()) {
+		_showWeekdayInDate = obj.value("showWeekdayInDate").toBool();
+	}
+	if (obj.value("hideShareButton").isBool()) {
+		_hideShareButton = obj.value("hideShareButton").toBool();
+	}
+	if (obj.value("disableGreetingSticker").isBool()) {
+		_disableGreetingSticker = obj.value("disableGreetingSticker").toBool();
+	}
 }
 
 void Config::save() {
@@ -632,6 +704,11 @@ void Config::save() {
 	obj.insert("downloadBoost", int(_downloadBoost.current()));
 	obj.insert("uploadBoost", int(_uploadBoost.current()));
 	obj.insert("uploadBoostFileSizeAware", _uploadBoostFileSizeAware.current());
+
+	obj.insert("confirmCalls", _confirmCalls.current());
+	obj.insert("showWeekdayInDate", _showWeekdayInDate.current());
+	obj.insert("hideShareButton", _hideShareButton.current());
+	obj.insert("disableGreetingSticker", _disableGreetingSticker.current());
 
 	QFile file(path);
 	if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {

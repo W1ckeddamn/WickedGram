@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "calls/calls_instance.h"
 
+#include "wicked/wicked_config.h"
+
 #include "calls/calls_call.h"
 #include "calls/group/calls_group_common.h"
 #include "calls/group/calls_choose_join_as.h"
@@ -203,6 +205,9 @@ Instance::~Instance() {
 void Instance::startOutgoingCall(
 		not_null<UserData*> user,
 		StartOutgoingCallArgs args) {
+	if (Wicked::Config::ConfirmCalls()) {
+		args.isConfirmed = false;
+	}
 	if (activateCurrentCall()
 		|| (!args.isConfirmed && activateUnconfirmedCall(user))) {
 		return;

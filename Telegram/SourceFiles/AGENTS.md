@@ -316,6 +316,10 @@ This atlas divides Telegram Desktop's sources into named areas, ordered from fou
 
 ## Features: settings and sign-in
 
+### wicked — fork-specific preferences and services
+- Paths: `SourceFiles/wicked/`
+- WickedGram's persistent preferences, grouped settings UI, configuration backup, media vault, network controls, lyrics, cached original names and registration-date estimates. Product behavior remains in its owning area: calls enforce call confirmation, message views control share arrows and greeting stickers, and history date helpers format date badges. This directory must not become a parallel implementation of chat screens or the updater; update discovery, verification and installation belong to core/updates.
+
 ### settings/sections — Settings pages
 - Paths: `SourceFiles/settings/sections/`, `SourceFiles/settings/cloud_password/`, `SourceFiles/settings/settings_privacy_controllers*`, `SourceFiles/settings/settings_experimental*`, `SourceFiles/settings/settings_power_saving*`, `SourceFiles/settings/settings_scale_preview*`, `SourceFiles/settings/settings_notifications_common.h`, `SourceFiles/settings/settings_intro*`, `SourceFiles/settings/settings_codes*`, `SourceFiles/ui/boxes/choose_font_box*`
 - Main, account info, privacy and security with per-rule pages, two-step verification steps, notifications, chat settings, folders, advanced, data and storage, local passcode, sessions, websites, passkeys, calls, shortcuts, experimental options and the Stars page. It must not own the framework or Business pages.
