@@ -9,6 +9,8 @@ an open-source fork of Telegram Desktop.
 #include "wicked/wicked_backup.h"
 #include "wicked/wicked_network_boost.h"
 #include "base/timer.h"
+#include "core/click_handler_types.h"
+#include "core/update_checker.h"
 #include "lang/lang_keys.h"
 #include "settings/settings_common.h"
 #include "ui/boxes/confirm_box.h"
@@ -542,6 +544,29 @@ void BackupBox(not_null<Ui::GenericBox*> box) {
 	});
 }
 
+void UpdatesBox(not_null<Ui::GenericBox*> box) {
+	PrepareSection(box, u"Обновления WickedGram"_q);
+	AddDescription(box, u"Релизы и тестовые сборки доступны на GitHub. Скачайте архив WickedGram и замените файлы приложения после его закрытия. Сохраните папку tdata: в ней находятся ваши аккаунты и настройки."_q);
+	const auto releases = box->addRow(
+		object_ptr<Ui::SettingsButton>(
+			box,
+			rpl::single(u"Релизы WickedGram"_q),
+			st::settingsButtonNoIcon),
+		QMargins());
+	releases->setClickedCallback([] {
+		Core::UpdateApplication();
+	});
+	const auto builds = box->addRow(
+		object_ptr<Ui::SettingsButton>(
+			box,
+			rpl::single(u"Тестовые сборки"_q),
+			st::settingsButtonNoIcon),
+		QMargins());
+	builds->setClickedCallback([] {
+		UrlClickHandler::Open(u"https://github.com/W1ckeddamn/WickedGram/actions/workflows/build-and-release.yml?query=branch%3Adev"_q);
+	});
+}
+
 void AddNavigation(
 		not_null<Ui::GenericBox*> box,
 		const QString &title,
@@ -607,6 +632,13 @@ void SettingsBox(not_null<Ui::GenericBox*> box) {
 		u"Перенос и восстановление настроек"_q,
 		st::menuIconRestore,
 		BackupBox);
+
+	AddNavigation(
+		box,
+		u"Обновления WickedGram"_q,
+		u"Релизы и тестовые сборки на GitHub"_q,
+		st::menuIconRestore,
+		UpdatesBox);
 
 	box->addButton(tr::lng_close(), [=] {
 		box->closeBox();

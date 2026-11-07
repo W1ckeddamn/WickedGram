@@ -81,11 +81,8 @@ constexpr auto kFlatpakPortalObjectPath = "/org/freedesktop/portal/Flatpak";
 constexpr auto kFlatpakUpdated = "/app/.updated"_cs;
 #endif // !Q_OS_WIN && !Q_OS_MAC
 
-#ifdef TDESKTOP_DISABLE_AUTOUPDATE
+// WickedGram ZIP builds cannot consume Telegram's signed update packages.
 bool UpdaterIsDisabled = true;
-#else // TDESKTOP_DISABLE_AUTOUPDATE
-bool UpdaterIsDisabled = false;
-#endif // TDESKTOP_DISABLE_AUTOUPDATE
 
 std::weak_ptr<Updater> UpdaterInstance;
 
@@ -1714,7 +1711,7 @@ void Updater::stop() {
 }
 
 void Updater::start(bool forceWait) {
-	if (cExeName().isEmpty()) {
+	if (UpdaterDisabled() || cExeName().isEmpty()) {
 		return;
 	}
 
@@ -2014,6 +2011,10 @@ bool UpdateChecker::percent() const {
 //}
 
 bool checkReadyUpdate() {
+	if (UpdaterDisabled()) {
+		return false;
+	}
+
 #if !defined Q_OS_WIN && !defined Q_OS_MAC
 	if (!KSandbox::isInside()) {
 		const auto packagePresent = Platform::ReadyUpdatePackagePresent(
@@ -2198,44 +2199,8 @@ bool checkReadyUpdate() {
 }
 
 void UpdateApplication() {
-	if (UpdaterDisabled()) {
-		const auto url = [&] {
-#ifdef OS_WIN_STORE
-			return "https://www.microsoft.com/en-us/store/p/telegram-desktop/9nztwsqntd0s";
-#elif defined OS_MAC_STORE // OS_WIN_STORE
-			return "https://itunes.apple.com/ae/app/telegram-desktop/id946399090";
-#else // OS_WIN_STORE || OS_MAC_STORE
-			if (KSandbox::isFlatpak()) {
-				return "https://flathub.org/apps/details/org.telegram.desktop";
-			} else if (KSandbox::isSnap()) {
-				return "https://snapcraft.io/telegram-desktop";
-			}
-			return "https://desktop.telegram.org";
-#endif // OS_WIN_STORE || OS_MAC_STORE
-		}();
-		UrlClickHandler::Open(url);
-	} else {
-		cSetAutoUpdate(true);
-		const auto window = Core::IsAppLaunched()
-			? Core::App().activePrimaryWindow()
-			: nullptr;
-		if (window) {
-			if (const auto controller = window->sessionController()) {
-				controller->showSection(
-					std::make_shared<Info::Memento>(
-						Info::Settings::Tag{ controller->session().user() },
-						::Settings::AdvancedId()),
-					Window::SectionShow());
-			} else {
-				window->widget()->showSpecialLayer(
-					Box<::Settings::LayerWidget>(window),
-					anim::type::normal);
-			}
-			window->widget()->showFromTray();
-		}
-		cSetLastUpdateCheck(0);
-		Core::UpdateChecker().start();
-	}
+	UrlClickHandler::Open(
+		u"https://github.com/W1ckeddamn/WickedGram/releases"_q);
 }
 
 QString countAlphaVersionSignature(uint64 version) { // duplicated in packer.cpp
