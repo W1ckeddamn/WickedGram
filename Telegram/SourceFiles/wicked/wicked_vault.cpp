@@ -5,6 +5,9 @@ an open-source fork of Telegram Desktop.
 #include "wicked/wicked_vault.h"
 
 #include "wicked/wicked_config.h"
+#include "wicked/vault_cleanup.h"
+#include "main/main_session.h"
+#include "ui/image/image.h"
 #include "history/history_item.h"
 #include "history/history.h"
 #include "data/data_peer.h"
@@ -19,6 +22,8 @@ an open-source fork of Telegram Desktop.
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
 #include <QtCore/QDateTime>
+#include <QtCore/QSaveFile>
+#include <QtCore/QBuffer>
 #include <algorithm>
 
 #ifdef Q_OS_WIN
@@ -39,10 +44,12 @@ QString Vault::VaultDirectory() {
 }
 
 bool Vault::LinkOrCopyFile(const QString &sourcePath, const QString &destPath) {
-	if (sourcePath.isEmpty() || !QFile::exists(sourcePath) || destPath.isEmpty()) {
+	if (sourcePath.isEmpty() || !QFile::exists(sourcePath) || destPath.isEmpty()
+		|| QFileInfo(destPath).isSymLink()) {
 		return false;
 	}
-	if (QFile::exists(destPath)) {
+	if (QFileInfo(destPath).isFile()
+		&& QFileInfo(destPath).size() == QFileInfo(sourcePath).size()) {
 		return true;
 	}
 
@@ -55,54 +62,117 @@ bool Vault::LinkOrCopyFile(const QString &sourcePath, const QString &destPath) {
 	}
 #endif
 
-	return QFile::copy(sourcePath, destPath);
+	auto source = QFile(sourcePath);
+	auto dest = QSaveFile(destPath);
+	if (!source.open(QIODevice::ReadOnly) || !dest.open(QIODevice::WriteOnly)) {
+		return false;
+	}
+	while (!source.atEnd()) {
+		const auto bytes = source.read(256 * 1024);
+		if (bytes.isEmpty() || dest.write(bytes) != bytes.size()) {
+			return false;
+		}
+	}
+	return dest.commit();
 }
 
 bool Vault::IsolateMedia(not_null<HistoryItem*> item) {
 	const auto media = item->media();
-	if (!media) {
+	const auto history = item->history();
+	const auto peer = history->peer;
+	if (!media || item->id.bare <= 0 || item->out() || item->isEphemeral() || media->ttlSeconds() > 0
+		|| (history->folder() && !Config::VaultSaveArchived())) {
 		return false;
 	}
-
-	const auto vaultDir = VaultDirectory();
-	const auto peerId = item->history()->peer->id.value;
-	const auto msgId = item->id.bare;
-
-	if (const auto document = media->document()) {
-		const auto localPath = document->filepath(true);
-		const auto fileName = document->filename().isEmpty()
-			? (QString::number(document->id) + u".bin"_q)
-			: document->filename();
-		const auto destName = QString::number(peerId)
-			+ u"_"_q + QString::number(msgId)
-			+ u"_"_q + fileName;
-		const auto destPath = vaultDir + destName;
-
-		if (!localPath.isEmpty() && QFile::exists(localPath)) {
-			return LinkOrCopyFile(localPath, destPath);
-		} else if (const auto view = document->activeMediaView()) {
-			const auto bytes = view->bytes();
-			if (!bytes.isEmpty()) {
-				QFile file(destPath);
-				if (file.open(QIODevice::WriteOnly)) {
-					file.write(bytes);
-					return true;
-				}
+	const auto allowed = peer->isBot()
+		? Config::VaultSaveBots()
+		: peer->isUser()
+		? Config::VaultSavePrivate()
+		: peer->isBroadcast()
+		? Config::VaultSaveChannels()
+		: Config::VaultSaveGroups();
+	if (!allowed) {
+		return false;
+	}
+	const auto maxBytes = qint64(Config::VaultMaxFileMb()) * 1024 * 1024;
+	const auto prefix = QString::number(history->session().userId().bare)
+		+ '_' + QString::number(peer->id.value)
+		+ '_' + QString::number(item->id.bare) + '_';
+	const auto finish = [&](bool saved) {
+		static auto lastCleanup = qint64(0);
+		const auto now = QDateTime::currentSecsSinceEpoch();
+		if (saved && now - lastCleanup >= 60) {
+			lastCleanup = now;
+			const auto result = Rotate(Config::VaultTtlDays(), Config::VaultMaxSizeGb());
+			if (result.deletedCount) {
+				LOG(("WickedGram Vault: auto-cleaned %1 files").arg(result.deletedCount));
 			}
 		}
-	} else if (const auto photo = media->photo()) {
-		const auto destName = QString::number(peerId)
-			+ u"_"_q + QString::number(msgId)
-			+ u"_photo.jpg"_q;
-		const auto destPath = vaultDir + destName;
-		if (QFile::exists(destPath)) {
+		return saved;
+	};
+	const auto writeBytes = [&](const QString &path, const QByteArray &bytes) {
+		if (bytes.isEmpty() || (maxBytes && bytes.size() > maxBytes)) {
+			return false;
+		}
+		if (QFile::exists(path)) {
 			return true;
 		}
+		auto file = QSaveFile(path);
+		return file.open(QIODevice::WriteOnly)
+			&& file.write(bytes) == bytes.size()
+			&& file.commit();
+	};
+	if (const auto document = media->document()) {
+		const auto allowedType = (document->isVoiceMessage() || document->isVideoMessage())
+			? Config::VaultSaveVoice()
+			: (document->isVideoFile() || document->isAnimation())
+			? Config::VaultSaveVideos()
+			: Config::VaultSaveFiles();
+		if (!allowedType || (maxBytes && document->size > maxBytes)) {
+			return false;
+		}
+		auto name = document->filename();
+		for (auto i = 0; i < name.size(); ++i) {
+			if (name.at(i).unicode() < 32 || u"\\/:*?\"<>|"_q.contains(name.at(i))) {
+				name[i] = '_';
+			}
+		}
+		name = name.left(120);
+		if (name.isEmpty()) {
+			name = QString::number(document->id) + u".bin"_q;
+		}
+		const auto dest = VaultDirectory() + prefix
+			+ QString::number(document->id) + '_' + name;
+		const auto source = document->filepath(true);
+		if (!source.isEmpty() && QFile::exists(source)) {
+			if (maxBytes && QFileInfo(source).size() > maxBytes) {
+				return false;
+			}
+			return finish(LinkOrCopyFile(source, dest));
+		} else if (const auto view = document->activeMediaView()) {
+			return finish(writeBytes(dest, view->bytes()));
+		}
+	} else if (const auto photo = media->photo()) {
+		if (!Config::VaultSavePhotos()
+			|| (maxBytes && photo->imageByteSize(Data::PhotoSize::Large) > maxBytes)) {
+			return false;
+		}
 		if (const auto view = photo->activeMediaView()) {
-			return view->saveToFile(destPath);
+			auto bytes = view->imageBytes(Data::PhotoSize::Large);
+			if (bytes.isEmpty()) {
+				const auto image = view->image(Data::PhotoSize::Large);
+				if (!image) {
+					return false;
+				}
+				auto buffer = QBuffer(&bytes);
+				if (!buffer.open(QIODevice::WriteOnly)
+					|| !image->original().save(&buffer, "JPG")) {
+					return false;
+				}
+			}
+			return finish(writeBytes(VaultDirectory() + prefix + u"photo.jpg"_q, bytes));
 		}
 	}
-
 	return false;
 }
 
@@ -130,62 +200,13 @@ bool Vault::Clear() {
 }
 
 Vault::RotationResult Vault::Rotate(int ttlDays, int maxSizeGb) {
-	RotationResult result;
-	if (ttlDays <= 0 && maxSizeGb <= 0) {
-		return result;
-	}
-	const auto dirPath = VaultDirectory();
-	QDir dir(dirPath);
-	auto entries = dir.entryInfoList(QDir::Files | QDir::NoDotAndDotDot);
-	const auto now = QDateTime::currentDateTime();
-
-	const auto maxAgeSecs = (ttlDays > 0) ? (int64(ttlDays) * 86400) : 0;
-	QFileInfoList surviving;
-	surviving.reserve(entries.size());
-
-	for (const auto &info : entries) {
-		if (info.size() == 0) {
-			QFile::remove(info.absoluteFilePath());
-			continue;
-		}
-		if (maxAgeSecs > 0) {
-			const auto ageSecs = info.lastModified().secsTo(now);
-			if (ageSecs > maxAgeSecs) {
-				const auto size = info.size();
-				if (QFile::remove(info.absoluteFilePath())) {
-					result.deletedCount++;
-					result.freedBytes += size;
-					continue;
-				}
-			}
-		}
-	surviving.push_back(info);
-	}
-
-	if (maxSizeGb > 0) {
-		const auto maxBytes = int64(maxSizeGb) * 1024 * 1024 * 1024;
-		int64 currentBytes = 0;
-		for (const auto &info : surviving) {
-			currentBytes += info.size();
-		}
-		if (currentBytes > maxBytes) {
-			std::sort(surviving.begin(), surviving.end(), [](const QFileInfo &a, const QFileInfo &b) {
-				return a.lastModified() < b.lastModified();
-			});
-			for (const auto &info : surviving) {
-				if (currentBytes <= maxBytes) {
-					break;
-				}
-				const auto size = info.size();
-				if (QFile::remove(info.absoluteFilePath())) {
-					currentBytes -= size;
-					result.deletedCount++;
-					result.freedBytes += size;
-				}
-			}
-		}
-	}
-	return result;
+	const auto result = VaultCleanup::Run(
+		VaultDirectory(),
+		ttlDays,
+		qint64(maxSizeGb) * 1024 * 1024 * 1024,
+		Config::VaultProtectedChats(),
+		QDateTime::currentDateTime());
+	return { result.deletedCount, result.freedBytes };
 }
 
 } // namespace Wicked

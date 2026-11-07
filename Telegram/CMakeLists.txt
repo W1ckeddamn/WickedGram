@@ -59,6 +59,7 @@ include(cmake/generate_update_keys.cmake)
 generate_update_keys(Telegram ${res_loc}/update)
 
 if (DESKTOP_APP_TEST_APPS OR TDESKTOP_BUILD_UPDATE_TESTS)
+    include(cmake/test_wicked_vault.cmake)
     include(cmake/test_update_verify.cmake)
     if (NOT DESKTOP_APP_DISABLE_AUTOUPDATE)
         include(cmake/test_update_unpack.cmake)
@@ -2512,6 +2513,7 @@ PRIVATE
     wicked/wicked_settings_box.h
     wicked/wicked_vault.cpp
     wicked/wicked_vault.h
+    wicked/vault_cleanup.h
     apiwrap.cpp
     apiwrap.h
     config.h

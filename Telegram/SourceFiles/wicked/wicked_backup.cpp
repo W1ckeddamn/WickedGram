@@ -12,6 +12,8 @@ an open-source fork of Telegram Desktop.
 #include <QtCore/QFileInfo>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
+#include <QtCore/QJsonArray>
+#include <QtCore/QRegularExpression>
 #include <QtCore/QDateTime>
 
 namespace Wicked {
@@ -60,6 +62,22 @@ QString BackupManager::ExportBackup(const QString &destinationPath) {
 	configObj.insert("showWeekdayInDate", Config::ShowWeekdayInDate());
 	configObj.insert("hideShareButton", Config::HideShareButton());
 	configObj.insert("disableGreetingSticker", Config::DisableGreetingSticker());
+
+	configObj.insert("streamerHideDialogNames", Config::StreamerHideDialogNames());
+	configObj.insert("streamerHideDialogAvatars", Config::StreamerHideDialogAvatars());
+	configObj.insert("streamerHideDialogMessages", Config::StreamerHideDialogMessages());
+	configObj.insert("streamerHideNotificationPreview", Config::StreamerHideNotificationPreview());
+	configObj.insert("vaultSavePrivate", Config::VaultSavePrivate());
+	configObj.insert("vaultSaveGroups", Config::VaultSaveGroups());
+	configObj.insert("vaultSaveChannels", Config::VaultSaveChannels());
+	configObj.insert("vaultSaveBots", Config::VaultSaveBots());
+	configObj.insert("vaultSaveArchived", Config::VaultSaveArchived());
+	configObj.insert("vaultSavePhotos", Config::VaultSavePhotos());
+	configObj.insert("vaultSaveVideos", Config::VaultSaveVideos());
+	configObj.insert("vaultSaveVoice", Config::VaultSaveVoice());
+	configObj.insert("vaultSaveFiles", Config::VaultSaveFiles());
+	configObj.insert("vaultMaxFileMb", Config::VaultMaxFileMb());
+	configObj.insert("vaultProtectedChats", QJsonArray::fromStringList(Config::VaultProtectedChats()));
 
 	QJsonObject root;
 	root.insert("app", "WickedGram");
@@ -191,6 +209,65 @@ bool BackupManager::ImportBackup(const QString &filePath) {
 	}
 	if (configObj.value("disableGreetingSticker").isBool()) {
 		Config::SetDisableGreetingSticker(configObj.value("disableGreetingSticker").toBool());
+	}
+
+	if (configObj.value("streamerHideDialogNames").isBool()) {
+		Config::SetStreamerHideDialogNames(configObj.value("streamerHideDialogNames").toBool());
+	}
+	if (configObj.value("streamerHideDialogAvatars").isBool()) {
+		Config::SetStreamerHideDialogAvatars(configObj.value("streamerHideDialogAvatars").toBool());
+	}
+	if (configObj.value("streamerHideDialogMessages").isBool()) {
+		Config::SetStreamerHideDialogMessages(configObj.value("streamerHideDialogMessages").toBool());
+	}
+	if (configObj.value("streamerHideNotificationPreview").isBool()) {
+		Config::SetStreamerHideNotificationPreview(configObj.value("streamerHideNotificationPreview").toBool());
+	}
+	if (configObj.value("vaultSavePrivate").isBool()) {
+		Config::SetVaultSavePrivate(configObj.value("vaultSavePrivate").toBool());
+	}
+	if (configObj.value("vaultSaveGroups").isBool()) {
+		Config::SetVaultSaveGroups(configObj.value("vaultSaveGroups").toBool());
+	}
+	if (configObj.value("vaultSaveChannels").isBool()) {
+		Config::SetVaultSaveChannels(configObj.value("vaultSaveChannels").toBool());
+	}
+	if (configObj.value("vaultSaveBots").isBool()) {
+		Config::SetVaultSaveBots(configObj.value("vaultSaveBots").toBool());
+	}
+	if (configObj.value("vaultSaveArchived").isBool()) {
+		Config::SetVaultSaveArchived(configObj.value("vaultSaveArchived").toBool());
+	}
+	if (configObj.value("vaultSavePhotos").isBool()) {
+		Config::SetVaultSavePhotos(configObj.value("vaultSavePhotos").toBool());
+	}
+	if (configObj.value("vaultSaveVideos").isBool()) {
+		Config::SetVaultSaveVideos(configObj.value("vaultSaveVideos").toBool());
+	}
+	if (configObj.value("vaultSaveVoice").isBool()) {
+		Config::SetVaultSaveVoice(configObj.value("vaultSaveVoice").toBool());
+	}
+	if (configObj.value("vaultSaveFiles").isBool()) {
+		Config::SetVaultSaveFiles(configObj.value("vaultSaveFiles").toBool());
+	}
+	if (configObj.value("vaultMaxFileMb").isDouble()) {
+		Config::SetVaultMaxFileMb(configObj.value("vaultMaxFileMb").toInt(0));
+	}
+	if (configObj.value("vaultProtectedChats").isArray()) {
+		auto keys = QStringList();
+		const auto pattern = QRegularExpression(u"^[0-9]+:[0-9]+$"_q);
+		auto valid = true;
+		for (const auto &entry : configObj.value("vaultProtectedChats").toArray()) {
+			const auto key = entry.toString();
+			if (!pattern.match(key).hasMatch()) {
+				valid = false;
+				break;
+			}
+			keys.push_back(key);
+		}
+		if (valid) {
+			Config::SetVaultProtectedChats(keys);
+		}
 	}
 
 	return true;

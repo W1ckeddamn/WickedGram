@@ -15,6 +15,7 @@ an open-source fork of Telegram Desktop.
 #include "lang/lang_keys.h"
 #include "settings/settings_common.h"
 #include "ui/boxes/confirm_box.h"
+#include "ui/boxes/single_choice_box.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/labels.h"
 #include "ui/widgets/buttons.h"
@@ -66,6 +67,43 @@ void AddToggle(
 		QMargins());
 	button->toggleOn(std::move(value));
 	button->toggledChanges() | rpl::on_next(std::move(save), button->lifetime());
+}
+
+void AddValueChoice(
+		not_null<Ui::GenericBox*> box,
+		const QString &title,
+		const QString &unit,
+		const std::vector<int> &values,
+		rpl::producer<int> value,
+		Fn<int()> current,
+		Fn<void(int)> save) {
+	const auto format = [=](int number) {
+		return number ? QString::number(number) + ' ' + unit : u"Без ограничений"_q;
+	};
+	const auto button = box->addRow(
+		object_ptr<Ui::SettingsButton>(box,
+			std::move(value) | rpl::map([=](int number) {
+				return title + u" · "_q + format(number);
+			}), st::settingsButtonNoIcon),
+		QMargins());
+	button->setClickedCallback([=] {
+		box->getDelegate()->show(Box([=](not_null<Ui::GenericBox*> choice) {
+			auto labels = std::vector<QString>();
+			auto selected = 0;
+			for (auto i = 0; i < int(values.size()); ++i) {
+				labels.push_back(format(values[i]));
+				if (values[i] == current()) {
+					selected = i;
+				}
+			}
+			SingleChoiceBox(choice, {
+				.title = rpl::single(title),
+				.options = labels,
+				.initialSelection = selected,
+				.callback = [=](int index) { save(values[index]); },
+			});
+		}));
+	});
 }
 
 void PrivacyBox(not_null<Ui::GenericBox*> box) {
@@ -170,6 +208,20 @@ void PrivacyBox(not_null<Ui::GenericBox*> box) {
 		u"Скрывать номера телефонов"_q,
 		Config::StreamerHidePhoneNumbersValue(),
 		Config::SetStreamerHidePhoneNumbers);
+
+	AddToggle(box, u"Маскировать названия в списке чатов"_q,
+		Config::StreamerHideDialogNamesValue(), Config::SetStreamerHideDialogNames);
+
+	AddToggle(box, u"Скрывать аватары в списке чатов"_q,
+		Config::StreamerHideDialogAvatarsValue(), Config::SetStreamerHideDialogAvatars);
+
+	AddToggle(box, u"Скрывать превью и черновики"_q,
+		Config::StreamerHideDialogMessagesValue(), Config::SetStreamerHideDialogMessages);
+
+	AddToggle(box, u"Скрывать данные уведомлений"_q,
+		Config::StreamerHideNotificationPreviewValue(), Config::SetStreamerHideNotificationPreview);
+
+	AddDescription(box, u"Маскировка списка чатов не скрывает содержимое открытой переписки, профиля и результатов поиска сообщений. Перед трансляцией проверьте показанный экран."_q);
 
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
@@ -331,9 +383,31 @@ void VaultBox(not_null<Ui::GenericBox*> box) {
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
 			box,
-			u"Автоматически изолирует полученные фото, видео и документы в защищённое хранилище на диске при получении."_q,
+			u"Сохраняет загруженные входящие медиа в отдельную папку на диске. Не запускает скачивание и не сохраняет одноразовые медиа. Файлы хранилища не зашифрованы."_q,
 			st::boxDividerLabel),
 		st::settingsCheckboxPadding);
+
+	AddHeading(box, u"Откуда сохранять"_q);
+	AddToggle(box, u"Личные сообщения"_q, Config::VaultSavePrivateValue(), Config::SetVaultSavePrivate);
+	AddToggle(box, u"Группы"_q, Config::VaultSaveGroupsValue(), Config::SetVaultSaveGroups);
+	AddToggle(box, u"Каналы"_q, Config::VaultSaveChannelsValue(), Config::SetVaultSaveChannels);
+	AddToggle(box, u"Боты"_q, Config::VaultSaveBotsValue(), Config::SetVaultSaveBots);
+	AddToggle(box, u"Архивные чаты"_q, Config::VaultSaveArchivedValue(), Config::SetVaultSaveArchived);
+
+	AddHeading(box, u"Типы медиа"_q);
+	AddToggle(box, u"Фотографии"_q, Config::VaultSavePhotosValue(), Config::SetVaultSavePhotos);
+	AddToggle(box, u"Видео и GIF"_q, Config::VaultSaveVideosValue(), Config::SetVaultSaveVideos);
+	AddToggle(box, u"Голосовые и кружочки"_q, Config::VaultSaveVoiceValue(), Config::SetVaultSaveVoice);
+	AddToggle(box, u"Документы и музыка"_q, Config::VaultSaveFilesValue(), Config::SetVaultSaveFiles);
+
+	AddHeading(box, u"Лимиты и автоочистка"_q);
+	AddValueChoice(box, u"Размер файла"_q, u"МБ"_q, { 0, 5, 25, 100, 500 },
+		Config::VaultMaxFileMbValue(), Config::VaultMaxFileMb, Config::SetVaultMaxFileMb);
+	AddValueChoice(box, u"Срок хранения"_q, u"дней"_q, { 0, 7, 30, 90, 365 },
+		Config::VaultTtlDaysValue(), Config::VaultTtlDays, Config::SetVaultTtlDays);
+	AddValueChoice(box, u"Размер хранилища"_q, u"ГБ"_q, { 0, 1, 5, 10, 50 },
+		Config::VaultMaxSizeGbValue(), Config::VaultMaxSizeGb, Config::SetVaultMaxSizeGb);
+	AddDescription(box, u"Автоочистка выполняется при сохранении медиа, не чаще раза в минуту. Защитить медиа выбранного чата можно в его контекстном меню. Защищённые файлы могут превышать лимит места."_q);
 
 	const auto formatStats = [] {
 		const auto stats = Vault::GetStats();
@@ -375,7 +449,7 @@ void VaultBox(not_null<Ui::GenericBox*> box) {
 
 	clearBtn->setClickedCallback([=] {
 		box->getDelegate()->show(Ui::MakeConfirmBox({
-			.text = u"Удалить все файлы из хранилища WickedGram? Это действие нельзя отменить."_q,
+			.text = u"Удалить все файлы из хранилища WickedGram, включая защищённые от автоочистки? Это действие нельзя отменить."_q,
 			.confirmed = [=, label = QPointer<Ui::FlatLabel>(vaultStatsLabel)](Fn<void()> close) {
 				close();
 				if (!label) {

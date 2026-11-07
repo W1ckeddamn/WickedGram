@@ -10,7 +10,10 @@ an open-source fork of Telegram Desktop.
 #include <QtCore/QDir>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
+#include <QtCore/QJsonArray>
 #include <QtCore/QStringList>
+#include <QtCore/QRegularExpression>
+#include <algorithm>
 
 namespace Wicked {
 
@@ -25,6 +28,250 @@ Config::Config() {
 
 QString Config::ConfigPath() {
 	return cWorkingDir() + u"tdata/wickedgram_config.json"_q;
+}
+
+bool Config::StreamerHideDialogNames() {
+	return Instance()._streamerHideDialogNames.current();
+}
+
+rpl::producer<bool> Config::StreamerHideDialogNamesValue() {
+	return Instance()._streamerHideDialogNames.value();
+}
+
+void Config::SetStreamerHideDialogNames(bool value) {
+	if (Instance()._streamerHideDialogNames.current() != value) {
+		Instance()._streamerHideDialogNames = value;
+		Instance().save();
+	}
+}
+
+bool Config::StreamerHideDialogAvatars() {
+	return Instance()._streamerHideDialogAvatars.current();
+}
+
+rpl::producer<bool> Config::StreamerHideDialogAvatarsValue() {
+	return Instance()._streamerHideDialogAvatars.value();
+}
+
+void Config::SetStreamerHideDialogAvatars(bool value) {
+	if (Instance()._streamerHideDialogAvatars.current() != value) {
+		Instance()._streamerHideDialogAvatars = value;
+		Instance().save();
+	}
+}
+
+bool Config::StreamerHideDialogMessages() {
+	return Instance()._streamerHideDialogMessages.current();
+}
+
+rpl::producer<bool> Config::StreamerHideDialogMessagesValue() {
+	return Instance()._streamerHideDialogMessages.value();
+}
+
+void Config::SetStreamerHideDialogMessages(bool value) {
+	if (Instance()._streamerHideDialogMessages.current() != value) {
+		Instance()._streamerHideDialogMessages = value;
+		Instance().save();
+	}
+}
+
+bool Config::StreamerHideNotificationPreview() {
+	return Instance()._streamerHideNotificationPreview.current();
+}
+
+rpl::producer<bool> Config::StreamerHideNotificationPreviewValue() {
+	return Instance()._streamerHideNotificationPreview.value();
+}
+
+void Config::SetStreamerHideNotificationPreview(bool value) {
+	if (Instance()._streamerHideNotificationPreview.current() != value) {
+		Instance()._streamerHideNotificationPreview = value;
+		Instance().save();
+	}
+}
+
+bool Config::VaultSavePrivate() {
+	return Instance()._vaultSavePrivate.current();
+}
+
+rpl::producer<bool> Config::VaultSavePrivateValue() {
+	return Instance()._vaultSavePrivate.value();
+}
+
+void Config::SetVaultSavePrivate(bool value) {
+	if (Instance()._vaultSavePrivate.current() != value) {
+		Instance()._vaultSavePrivate = value;
+		Instance().save();
+	}
+}
+
+bool Config::VaultSaveGroups() {
+	return Instance()._vaultSaveGroups.current();
+}
+
+rpl::producer<bool> Config::VaultSaveGroupsValue() {
+	return Instance()._vaultSaveGroups.value();
+}
+
+void Config::SetVaultSaveGroups(bool value) {
+	if (Instance()._vaultSaveGroups.current() != value) {
+		Instance()._vaultSaveGroups = value;
+		Instance().save();
+	}
+}
+
+bool Config::VaultSaveChannels() {
+	return Instance()._vaultSaveChannels.current();
+}
+
+rpl::producer<bool> Config::VaultSaveChannelsValue() {
+	return Instance()._vaultSaveChannels.value();
+}
+
+void Config::SetVaultSaveChannels(bool value) {
+	if (Instance()._vaultSaveChannels.current() != value) {
+		Instance()._vaultSaveChannels = value;
+		Instance().save();
+	}
+}
+
+bool Config::VaultSaveBots() {
+	return Instance()._vaultSaveBots.current();
+}
+
+rpl::producer<bool> Config::VaultSaveBotsValue() {
+	return Instance()._vaultSaveBots.value();
+}
+
+void Config::SetVaultSaveBots(bool value) {
+	if (Instance()._vaultSaveBots.current() != value) {
+		Instance()._vaultSaveBots = value;
+		Instance().save();
+	}
+}
+
+bool Config::VaultSaveArchived() {
+	return Instance()._vaultSaveArchived.current();
+}
+
+rpl::producer<bool> Config::VaultSaveArchivedValue() {
+	return Instance()._vaultSaveArchived.value();
+}
+
+void Config::SetVaultSaveArchived(bool value) {
+	if (Instance()._vaultSaveArchived.current() != value) {
+		Instance()._vaultSaveArchived = value;
+		Instance().save();
+	}
+}
+
+bool Config::VaultSavePhotos() {
+	return Instance()._vaultSavePhotos.current();
+}
+
+rpl::producer<bool> Config::VaultSavePhotosValue() {
+	return Instance()._vaultSavePhotos.value();
+}
+
+void Config::SetVaultSavePhotos(bool value) {
+	if (Instance()._vaultSavePhotos.current() != value) {
+		Instance()._vaultSavePhotos = value;
+		Instance().save();
+	}
+}
+
+bool Config::VaultSaveVideos() {
+	return Instance()._vaultSaveVideos.current();
+}
+
+rpl::producer<bool> Config::VaultSaveVideosValue() {
+	return Instance()._vaultSaveVideos.value();
+}
+
+void Config::SetVaultSaveVideos(bool value) {
+	if (Instance()._vaultSaveVideos.current() != value) {
+		Instance()._vaultSaveVideos = value;
+		Instance().save();
+	}
+}
+
+bool Config::VaultSaveVoice() {
+	return Instance()._vaultSaveVoice.current();
+}
+
+rpl::producer<bool> Config::VaultSaveVoiceValue() {
+	return Instance()._vaultSaveVoice.value();
+}
+
+void Config::SetVaultSaveVoice(bool value) {
+	if (Instance()._vaultSaveVoice.current() != value) {
+		Instance()._vaultSaveVoice = value;
+		Instance().save();
+	}
+}
+
+bool Config::VaultSaveFiles() {
+	return Instance()._vaultSaveFiles.current();
+}
+
+rpl::producer<bool> Config::VaultSaveFilesValue() {
+	return Instance()._vaultSaveFiles.value();
+}
+
+void Config::SetVaultSaveFiles(bool value) {
+	if (Instance()._vaultSaveFiles.current() != value) {
+		Instance()._vaultSaveFiles = value;
+		Instance().save();
+	}
+}
+
+int Config::VaultMaxFileMb() {
+	return Instance()._vaultMaxFileMb.current();
+}
+
+rpl::producer<int> Config::VaultMaxFileMbValue() {
+	return Instance()._vaultMaxFileMb.value();
+}
+
+void Config::SetVaultMaxFileMb(int value) {
+	value = std::clamp(value, 0, 2048);
+	if (Instance()._vaultMaxFileMb.current() != value) {
+		Instance()._vaultMaxFileMb = value;
+		Instance().save();
+	}
+}
+
+bool Config::VaultChatProtected(const QString &key) {
+	return Instance()._vaultProtectedChats.contains(key);
+}
+
+const QStringList &Config::VaultProtectedChats() {
+	return Instance()._vaultProtectedChats;
+}
+
+void Config::SetVaultProtectedChats(const QStringList &keys) {
+	static const auto pattern = QRegularExpression(u"^[0-9]+:[0-9]+$"_q);
+	if (keys.size() > 10000 || std::any_of(keys.begin(), keys.end(), [&](const QString &key) {
+		return !pattern.match(key).hasMatch();
+	})) {
+		return;
+	}
+	auto normalized = keys;
+	normalized.removeDuplicates();
+	if (Instance()._vaultProtectedChats != normalized) {
+		Instance()._vaultProtectedChats = std::move(normalized);
+		Instance().save();
+	}
+}
+
+void Config::SetVaultChatProtected(const QString &key, bool value) {
+	auto keys = VaultProtectedChats();
+	if (value) {
+		keys.push_back(key);
+	} else {
+		keys.removeAll(key);
+	}
+	SetVaultProtectedChats(keys);
 }
 
 bool Config::ConfirmCalls() {
@@ -276,6 +523,7 @@ rpl::producer<int> Config::VaultMaxSizeGbValue() {
 }
 
 void Config::SetVaultMaxSizeGb(int gb) {
+	gb = std::clamp(gb, 0, 1024);
 	if (Instance()._vaultMaxSizeGb.current() != gb) {
 		Instance()._vaultMaxSizeGb = gb;
 		Instance().save();
@@ -291,6 +539,7 @@ rpl::producer<int> Config::VaultTtlDaysValue() {
 }
 
 void Config::SetVaultTtlDays(int days) {
+	days = std::clamp(days, 0, 3650);
 	if (Instance()._vaultTtlDays.current() != days) {
 		Instance()._vaultTtlDays = days;
 		Instance().save();
@@ -625,10 +874,10 @@ void Config::load() {
 		_autoVaultMedia = obj.value("autoVaultMedia").toBool(false);
 	}
 	if (obj.contains("vaultMaxSizeGb")) {
-		_vaultMaxSizeGb = obj.value("vaultMaxSizeGb").toInt(0);
+		_vaultMaxSizeGb = std::clamp(obj.value("vaultMaxSizeGb").toInt(0), 0, 1024);
 	}
 	if (obj.contains("vaultTtlDays")) {
-		_vaultTtlDays = obj.value("vaultTtlDays").toInt(0);
+		_vaultTtlDays = std::clamp(obj.value("vaultTtlDays").toInt(0), 0, 3650);
 	}
 	if (obj.contains("streamerMode")) {
 		_streamerMode = obj.value("streamerMode").toBool(false);
@@ -671,6 +920,53 @@ void Config::load() {
 	if (obj.value("disableGreetingSticker").isBool()) {
 		_disableGreetingSticker = obj.value("disableGreetingSticker").toBool();
 	}
+	if (obj.value("streamerHideDialogNames").isBool()) {
+		_streamerHideDialogNames = obj.value("streamerHideDialogNames").toBool();
+	}
+	if (obj.value("streamerHideDialogAvatars").isBool()) {
+		_streamerHideDialogAvatars = obj.value("streamerHideDialogAvatars").toBool();
+	}
+	if (obj.value("streamerHideDialogMessages").isBool()) {
+		_streamerHideDialogMessages = obj.value("streamerHideDialogMessages").toBool();
+	}
+	if (obj.value("streamerHideNotificationPreview").isBool()) {
+		_streamerHideNotificationPreview = obj.value("streamerHideNotificationPreview").toBool();
+	}
+	if (obj.value("vaultSavePrivate").isBool()) {
+		_vaultSavePrivate = obj.value("vaultSavePrivate").toBool();
+	}
+	if (obj.value("vaultSaveGroups").isBool()) {
+		_vaultSaveGroups = obj.value("vaultSaveGroups").toBool();
+	}
+	if (obj.value("vaultSaveChannels").isBool()) {
+		_vaultSaveChannels = obj.value("vaultSaveChannels").toBool();
+	}
+	if (obj.value("vaultSaveBots").isBool()) {
+		_vaultSaveBots = obj.value("vaultSaveBots").toBool();
+	}
+	if (obj.value("vaultSaveArchived").isBool()) {
+		_vaultSaveArchived = obj.value("vaultSaveArchived").toBool();
+	}
+	if (obj.value("vaultSavePhotos").isBool()) {
+		_vaultSavePhotos = obj.value("vaultSavePhotos").toBool();
+	}
+	if (obj.value("vaultSaveVideos").isBool()) {
+		_vaultSaveVideos = obj.value("vaultSaveVideos").toBool();
+	}
+	if (obj.value("vaultSaveVoice").isBool()) {
+		_vaultSaveVoice = obj.value("vaultSaveVoice").toBool();
+	}
+	if (obj.value("vaultSaveFiles").isBool()) {
+		_vaultSaveFiles = obj.value("vaultSaveFiles").toBool();
+	}
+	_vaultMaxFileMb = std::clamp(obj.value("vaultMaxFileMb").toInt(0), 0, 2048);
+	for (const auto &entry : obj.value("vaultProtectedChats").toArray()) {
+		const auto key = entry.toString();
+		if (QRegularExpression(u"^[0-9]+:[0-9]+$"_q).match(key).hasMatch()) {
+			_vaultProtectedChats.push_back(key);
+		}
+	}
+	_vaultProtectedChats.removeDuplicates();
 }
 
 void Config::save() {
@@ -709,6 +1005,22 @@ void Config::save() {
 	obj.insert("showWeekdayInDate", _showWeekdayInDate.current());
 	obj.insert("hideShareButton", _hideShareButton.current());
 	obj.insert("disableGreetingSticker", _disableGreetingSticker.current());
+
+	obj.insert("streamerHideDialogNames", _streamerHideDialogNames.current());
+	obj.insert("streamerHideDialogAvatars", _streamerHideDialogAvatars.current());
+	obj.insert("streamerHideDialogMessages", _streamerHideDialogMessages.current());
+	obj.insert("streamerHideNotificationPreview", _streamerHideNotificationPreview.current());
+	obj.insert("vaultSavePrivate", _vaultSavePrivate.current());
+	obj.insert("vaultSaveGroups", _vaultSaveGroups.current());
+	obj.insert("vaultSaveChannels", _vaultSaveChannels.current());
+	obj.insert("vaultSaveBots", _vaultSaveBots.current());
+	obj.insert("vaultSaveArchived", _vaultSaveArchived.current());
+	obj.insert("vaultSavePhotos", _vaultSavePhotos.current());
+	obj.insert("vaultSaveVideos", _vaultSaveVideos.current());
+	obj.insert("vaultSaveVoice", _vaultSaveVoice.current());
+	obj.insert("vaultSaveFiles", _vaultSaveFiles.current());
+	obj.insert("vaultMaxFileMb", _vaultMaxFileMb.current());
+	obj.insert("vaultProtectedChats", QJsonArray::fromStringList(_vaultProtectedChats));
 
 	QFile file(path);
 	if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {

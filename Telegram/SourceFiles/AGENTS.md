@@ -318,6 +318,7 @@ This atlas divides Telegram Desktop's sources into named areas, ordered from fou
 
 ### wicked — fork-specific preferences and services
 - Paths: `SourceFiles/wicked/`
+- `vault_cleanup.h` owns testable file-retention policy without account or UI dependencies. It may remove only recognized vault files and must preserve protected chats, unknown files, directories and symlinks. Download-completion hooks stay in `data/data_session.cpp`, and streamer redaction stays in dialog painting and notification display options.
 - WickedGram's persistent preferences, grouped settings UI, configuration backup, media vault, network controls, lyrics, cached original names and registration-date estimates. Product behavior remains in its owning area: calls enforce call confirmation, message views control share arrows and greeting stickers, and history date helpers format date badges. This directory must not become a parallel implementation of chat screens or the updater; update discovery, verification and installation belong to core/updates.
 
 ### settings/sections — Settings pages

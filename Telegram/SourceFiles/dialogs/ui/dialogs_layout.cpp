@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/ui/dialogs_layout.h"
 
+#include "wicked/wicked_config.h"
+
 #include "base/options.h"
 #include "base/unixtime.h"
 #include "core/ui_integration.h"
@@ -456,6 +458,7 @@ void PaintRow(
 		BadgesState badgesState,
 		base::flags<Flag> flags,
 		PaintItemCallback &&paintItemCallback) {
+	const auto streamer = Wicked::Config::StreamerMode();
 	const auto supportMode = entry->session().supportMode();
 	if (supportMode) {
 		draft = nullptr;
@@ -492,7 +495,14 @@ void PaintRow(
 		row->paintRipple(p, 0, 0, context.width, &ripple->c);
 	}
 
-	if (flags & Flag::SavedMessages) {
+	if (streamer && Wicked::Config::StreamerHideDialogAvatars()) {
+		EmptyUserpic::PaintHiddenAuthor(
+			p,
+			context.st->padding.left(),
+			context.st->padding.top(),
+			context.width,
+			context.st->photoSize);
+	} else if (flags & Flag::SavedMessages) {
 		EmptyUserpic::PaintSavedMessages(
 			p,
 			context.st->padding.left(),
@@ -606,7 +616,13 @@ void PaintRow(
 		}
 	}
 	auto texttop = context.st->textTop;
-	if (const auto folder = entry->asFolder()) {
+	if (streamer && Wicked::Config::StreamerHideDialogMessages()) {
+		const auto available = PaintWideCounter(p, context, badgesState, texttop, namewidth, false);
+		p.setFont(st::dialogsTextFont);
+		p.setPen(context.active ? st::dialogsTextFgActive : st::dialogsTextFg);
+		p.drawTextLeft(nameleft, texttop, context.width,
+			st::dialogsTextFont->elided(u"Сообщения скрыты"_q, available));
+	} else if (const auto folder = entry->asFolder()) {
 		const auto availableWidth = PaintWideCounter(
 			p,
 			context,
@@ -900,7 +916,11 @@ void PaintRow(
 		});
 		rectForName.setWidth(rectForName.width() - badgeWidth);
 	};
-	if (flags
+	if (streamer && Wicked::Config::StreamerHideDialogNames()) {
+		p.setPen(context.active ? st::dialogsNameFgActive : st::dialogsNameFg);
+		p.drawTextLeft(rectForName.left(), rectForName.top(), context.width,
+			st::semiboldFont->elided(u"Скрытый чат"_q, rectForName.width()));
+	} else if (flags
 		& (Flag::SavedMessages
 			| Flag::RepliesMessages
 			| Flag::VerifyCodes

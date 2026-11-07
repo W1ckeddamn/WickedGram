@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/notifications_manager.h"
 
+#include "wicked/wicked_config.h"
+
 #include "base/options.h"
 #include "base/platform/base_platform_info.h"
 #include "base/qt/qt_key_modifiers.h"
@@ -212,6 +214,17 @@ System::System()
 : _waitTimer([=] { showNext(); })
 , _waitForAllGroupedTimer([=] { showGrouped(); })
 , _manager(std::make_unique<DummyManager>(this)) {
+	rpl::combine(
+		Wicked::Config::StreamerModeValue(),
+		Wicked::Config::StreamerHideNotificationPreviewValue()
+	) | rpl::skip(1) | rpl::on_next([=](bool streaming, bool hide) {
+		if (streaming && hide) {
+			clearAll();
+		} else {
+			updateAll();
+		}
+	}, lifetime());
+
 	settingsChanged(
 	) | rpl::on_next([=](ChangeType type) {
 		if (type == ChangeType::DesktopEnabled) {
@@ -1088,7 +1101,9 @@ Manager::DisplayOptions Manager::getNotificationOptions(
 		HistoryItem *item,
 		Data::ItemNotificationType type) const {
 	const auto hideEverything = Core::App().passcodeLocked()
-		|| forceHideDetails();
+		|| forceHideDetails()
+		|| (Wicked::Config::StreamerMode()
+			&& Wicked::Config::StreamerHideNotificationPreview());
 	const auto view = Core::App().settings().notifyView();
 	const auto peer = item ? item->history()->peer.get() : nullptr;
 	const auto topic = item ? item->topic() : nullptr;

@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_peer_menu.h"
 
+#include "wicked/wicked_config.h"
+
 #include "base/call_delayed.h"
 #include "menu/menu_check_item.h"
 #include "menu/menu_mark_as_read.h"
@@ -1705,6 +1707,16 @@ void Filler::addSendMoney() {
 }
 
 void Filler::fill() {
+	if (_peer && !_folder && !_sublist && !_topic) {
+		const auto key = QString::number(_peer->session().userId().bare)
+			+ ':' + QString::number(_peer->id.value);
+		const auto protectedChat = Wicked::Config::VaultChatProtected(key);
+		_addAction(protectedChat
+			? u"Разрешить автоочистку хранилища чата"_q
+			: u"Защитить хранилище чата от автоочистки"_q, [=] {
+			Wicked::Config::SetVaultChatProtected(key, !protectedChat);
+		}, &st::menuIconArchive);
+	}
 	if (_folder) {
 		fillArchiveActions();
 	} else if (_sublist && _peer->isSelf()) {

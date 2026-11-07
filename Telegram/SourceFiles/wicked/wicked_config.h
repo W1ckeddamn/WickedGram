@@ -7,6 +7,7 @@ an open-source fork of Telegram Desktop.
 #include <rpl/variable.h>
 #include <rpl/producer.h>
 #include <QtCore/QString>
+#include <QtCore/QStringList>
 
 namespace Wicked {
 
@@ -128,6 +129,67 @@ public:
 	[[nodiscard]] static rpl::producer<bool> DisableGreetingStickerValue();
 	static void SetDisableGreetingSticker(bool enabled);
 
+	[[nodiscard]] static bool StreamerHideDialogNames();
+	[[nodiscard]] static rpl::producer<bool> StreamerHideDialogNamesValue();
+	static void SetStreamerHideDialogNames(bool value);
+
+	[[nodiscard]] static bool StreamerHideDialogAvatars();
+	[[nodiscard]] static rpl::producer<bool> StreamerHideDialogAvatarsValue();
+	static void SetStreamerHideDialogAvatars(bool value);
+
+	[[nodiscard]] static bool StreamerHideDialogMessages();
+	[[nodiscard]] static rpl::producer<bool> StreamerHideDialogMessagesValue();
+	static void SetStreamerHideDialogMessages(bool value);
+
+	[[nodiscard]] static bool StreamerHideNotificationPreview();
+	[[nodiscard]] static rpl::producer<bool> StreamerHideNotificationPreviewValue();
+	static void SetStreamerHideNotificationPreview(bool value);
+
+	[[nodiscard]] static bool VaultSavePrivate();
+	[[nodiscard]] static rpl::producer<bool> VaultSavePrivateValue();
+	static void SetVaultSavePrivate(bool value);
+
+	[[nodiscard]] static bool VaultSaveGroups();
+	[[nodiscard]] static rpl::producer<bool> VaultSaveGroupsValue();
+	static void SetVaultSaveGroups(bool value);
+
+	[[nodiscard]] static bool VaultSaveChannels();
+	[[nodiscard]] static rpl::producer<bool> VaultSaveChannelsValue();
+	static void SetVaultSaveChannels(bool value);
+
+	[[nodiscard]] static bool VaultSaveBots();
+	[[nodiscard]] static rpl::producer<bool> VaultSaveBotsValue();
+	static void SetVaultSaveBots(bool value);
+
+	[[nodiscard]] static bool VaultSaveArchived();
+	[[nodiscard]] static rpl::producer<bool> VaultSaveArchivedValue();
+	static void SetVaultSaveArchived(bool value);
+
+	[[nodiscard]] static bool VaultSavePhotos();
+	[[nodiscard]] static rpl::producer<bool> VaultSavePhotosValue();
+	static void SetVaultSavePhotos(bool value);
+
+	[[nodiscard]] static bool VaultSaveVideos();
+	[[nodiscard]] static rpl::producer<bool> VaultSaveVideosValue();
+	static void SetVaultSaveVideos(bool value);
+
+	[[nodiscard]] static bool VaultSaveVoice();
+	[[nodiscard]] static rpl::producer<bool> VaultSaveVoiceValue();
+	static void SetVaultSaveVoice(bool value);
+
+	[[nodiscard]] static bool VaultSaveFiles();
+	[[nodiscard]] static rpl::producer<bool> VaultSaveFilesValue();
+	static void SetVaultSaveFiles(bool value);
+
+	[[nodiscard]] static int VaultMaxFileMb();
+	[[nodiscard]] static rpl::producer<int> VaultMaxFileMbValue();
+	static void SetVaultMaxFileMb(int value);
+
+	[[nodiscard]] static bool VaultChatProtected(const QString &key);
+	static void SetVaultChatProtected(const QString &key, bool value);
+	static void SetVaultProtectedChats(const QStringList &keys);
+	[[nodiscard]] static const QStringList &VaultProtectedChats();
+
 	[[nodiscard]] static QString FixSocialLinks(QString text);
 	[[nodiscard]] static QString CleanUrl(QString url);
 	[[nodiscard]] static QString CleanUrlsInText(QString text);
@@ -174,6 +236,22 @@ private:
 	rpl::variable<bool> _showWeekdayInDate = false;
 	rpl::variable<bool> _hideShareButton = false;
 	rpl::variable<bool> _disableGreetingSticker = false;
+
+	rpl::variable<bool> _streamerHideDialogNames = true;
+	rpl::variable<bool> _streamerHideDialogAvatars = true;
+	rpl::variable<bool> _streamerHideDialogMessages = true;
+	rpl::variable<bool> _streamerHideNotificationPreview = true;
+	rpl::variable<bool> _vaultSavePrivate = true;
+	rpl::variable<bool> _vaultSaveGroups = true;
+	rpl::variable<bool> _vaultSaveChannels = true;
+	rpl::variable<bool> _vaultSaveBots = true;
+	rpl::variable<bool> _vaultSaveArchived = true;
+	rpl::variable<bool> _vaultSavePhotos = true;
+	rpl::variable<bool> _vaultSaveVideos = true;
+	rpl::variable<bool> _vaultSaveVoice = true;
+	rpl::variable<bool> _vaultSaveFiles = true;
+	rpl::variable<int> _vaultMaxFileMb = 0;
+	QStringList _vaultProtectedChats;
 
 	bool _loaded = false;
 };

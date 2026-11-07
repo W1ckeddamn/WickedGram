@@ -2006,6 +2006,14 @@ void Session::documentLoadProgress(not_null<DocumentData*> document) {
 }
 
 void Session::documentLoadDone(not_null<DocumentData*> document) {
+	if (Wicked::Config::AutoVaultMedia()) {
+		const auto i = _documentItems.find(document);
+		if (i != end(_documentItems)) {
+			for (const auto &item : i->second) {
+				Wicked::Vault::IsolateMedia(item);
+			}
+		}
+	}
 	notifyDocumentLayoutChanged(document);
 	_documentLoadProgress.fire_copy(document);
 }
@@ -2023,6 +2031,14 @@ void Session::photoLoadProgress(not_null<PhotoData*> photo) {
 }
 
 void Session::photoLoadDone(not_null<PhotoData*> photo) {
+	if (Wicked::Config::AutoVaultMedia()) {
+		const auto i = _photoItems.find(photo);
+		if (i != end(_photoItems)) {
+			for (const auto &entry : i->second) {
+				Wicked::Vault::IsolateMedia(entry.first);
+			}
+		}
+	}
 	notifyPhotoLayoutChanged(photo);
 	_photoLoadProgress.fire_copy(photo);
 }

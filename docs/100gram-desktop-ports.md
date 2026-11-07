@@ -38,3 +38,40 @@ interaction design. They are not copied into this batch.
   without these keys should preserve their current values.
 
 These are runtime verification steps; compilation alone does not establish them.
+
+## Second batch: streaming and media storage
+
+The streamer master switch now has independent controls for chat-list names,
+avatars, message/draft previews, and notification identities and text. These
+operate on presentation data; they do not rename peers or rewrite messages.
+Changing notification masking clears existing notifications so an old preview
+does not remain on screen. The list controls do not conceal an opened chat,
+profile, message-search results, or the operating system's own UI.
+
+Vault settings now select private chats, groups, channels, bots, archived chats,
+photos, video/GIF, voice/round messages, and other files. The existing scopes
+remain enabled by default for compatibility; automatic saving itself stays off
+by default. Files are saved when already available, including at download
+completion. This is not a background download or history-synchronization tool.
+Outgoing, synthetic and ephemeral media are excluded.
+
+File-size, retention and total-size controls are exposed in settings. Cleanup
+runs during successful saves at most once per minute or through the explicit
+cleanup action. The chat menu can protect that account/chat's vault files from
+TTL and quota cleanup. Legacy filenames without an account prefix are protected
+conservatively across accounts. Protected files may exceed the storage quota.
+Manual full clearing remains separate and asks for confirmation including
+protected files.
+
+New filenames include the account, peer, message and document identity to avoid
+collisions. Document names are sanitized and copies use atomic replacement;
+Windows still prefers hardlinks when possible. The vault is a plaintext folder,
+not an encrypted archive. Unknown files, subdirectories and symlinks are excluded
+from automatic cleanup. All new settings and protected-chat selections are
+included in configuration backup.
+
+`test_wicked_vault_cleanup` exercises TTL expiry, quota eviction order, protected
+files, legacy filenames, account separation, unmanaged files and unlimited mode
+using temporary directories. The GitHub Debug workflow runs it before publishing.
+Streamer masking and filter behavior still require runtime verification in the
+built client; these filesystem tests do not cover those UI paths.
