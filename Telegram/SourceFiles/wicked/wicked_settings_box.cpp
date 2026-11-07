@@ -11,6 +11,7 @@ an open-source fork of Telegram Desktop.
 #include "base/timer.h"
 #include "core/click_handler_types.h"
 #include "core/update_checker.h"
+#include "core/application.h"
 #include "lang/lang_keys.h"
 #include "settings/settings_common.h"
 #include "ui/boxes/confirm_box.h"
@@ -546,7 +547,45 @@ void BackupBox(not_null<Ui::GenericBox*> box) {
 
 void UpdatesBox(not_null<Ui::GenericBox*> box) {
 	PrepareSection(box, u"Обновления WickedGram"_q);
-	AddDescription(box, u"Релизы и тестовые сборки доступны на GitHub. Скачайте архив WickedGram и замените файлы приложения после его закрытия. Сохраните папку tdata: в ней находятся ваши аккаунты и настройки."_q);
+	AddDescription(box, u"WickedGram проверяет собственные обновления, загружает их и проверяет подпись. После загрузки нажмите «Перезапустить и обновить». Аккаунты и настройки сохранятся."_q);
+	const auto checker = box->lifetime().make_state<Core::UpdateChecker>();
+	const auto title = box->lifetime().make_state<rpl::variable<QString>>(
+		checker->state() == Core::UpdateChecker::State::Ready
+			? u"Перезапустить и обновить"_q
+			: u"Проверить обновления"_q);
+	const auto status = box->addRow(
+		object_ptr<Ui::FlatLabel>(box, u"Обновления из канала WickedGram dev"_q, st::boxLabel),
+		st::settingsCheckboxPadding);
+	const auto check = box->addRow(
+		object_ptr<Ui::SettingsButton>(box, title->value(), st::settingsButtonNoIcon),
+		QMargins());
+	check->setClickedCallback([=] {
+		if (checker->state() == Core::UpdateChecker::State::Ready) {
+			if (Core::checkReadyUpdate()) {
+				Core::Restart();
+			} else {
+				status->setText(u"Не удалось подготовить обновление"_q);
+			}
+		} else {
+			Core::UpdateApplication();
+		}
+	});
+	checker->checking() | rpl::on_next([=] {
+		status->setText(u"Проверяем новую версию WickedGram…"_q);
+	}, box->lifetime());
+	checker->isLatest() | rpl::on_next([=] {
+		status->setText(u"Установлена последняя версия WickedGram"_q);
+	}, box->lifetime());
+	checker->progress() | rpl::on_next([=](const Core::UpdateChecker::Progress &) {
+		status->setText(u"Загружаем обновление WickedGram…"_q);
+	}, box->lifetime());
+	checker->ready() | rpl::on_next([=] {
+		status->setText(u"Обновление проверено и готово к установке"_q);
+		*title = u"Перезапустить и обновить"_q;
+	}, box->lifetime());
+	checker->failed() | rpl::on_next([=] {
+		status->setText(u"Не удалось проверить или загрузить обновление. Попробуйте позже."_q);
+	}, box->lifetime());
 	const auto releases = box->addRow(
 		object_ptr<Ui::SettingsButton>(
 			box,
@@ -554,7 +593,7 @@ void UpdatesBox(not_null<Ui::GenericBox*> box) {
 			st::settingsButtonNoIcon),
 		QMargins());
 	releases->setClickedCallback([] {
-		Core::UpdateApplication();
+		UrlClickHandler::Open(u"https://github.com/W1ckeddamn/WickedGram/releases"_q);
 	});
 	const auto builds = box->addRow(
 		object_ptr<Ui::SettingsButton>(

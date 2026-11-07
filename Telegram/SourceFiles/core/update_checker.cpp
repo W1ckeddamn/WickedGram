@@ -65,6 +65,8 @@ namespace {
 
 constexpr auto kUpdaterTimeout = 10 * crl::time(1000);
 constexpr auto kMaxResponseSize = 1024 * 1024;
+constexpr auto kWickedGramReady = "wickedgram-v1";
+constexpr auto kWickedGramFeed = "https://github.com/W1ckeddamn/WickedGram/releases/download/wickedgram-dev/update.json";
 
 // Alpha and canary builds are published far more often than the eight hours
 // a stable build waits, so they ask every ten to fifteen minutes instead.
@@ -81,8 +83,11 @@ constexpr auto kFlatpakPortalObjectPath = "/org/freedesktop/portal/Flatpak";
 constexpr auto kFlatpakUpdated = "/app/.updated"_cs;
 #endif // !Q_OS_WIN && !Q_OS_MAC
 
-// WickedGram ZIP builds cannot consume Telegram's signed update packages.
+#ifdef TDESKTOP_DISABLE_AUTOUPDATE
 bool UpdaterIsDisabled = true;
+#else // TDESKTOP_DISABLE_AUTOUPDATE
+bool UpdaterIsDisabled = !BuildIsCanary || !Platform::IsWindows();
+#endif // TDESKTOP_DISABLE_AUTOUPDATE
 
 std::weak_ptr<Updater> UpdaterInstance;
 
@@ -442,7 +447,7 @@ enum class ManifestAdoption {
 [[nodiscard]] bool WriteUpdateReadyFile(const QString &readyFilePath) {
 	QFile readyFile(readyFilePath);
 	if (readyFile.open(QIODevice::WriteOnly)) {
-		if (readyFile.write("1", 1)) {
+		if (readyFile.write(kWickedGramReady) == qstrlen(kWickedGramReady)) {
 			readyFile.close();
 		} else {
 			LOG(("Update Error: cant write ready file '%1'").arg(readyFilePath));
@@ -729,11 +734,7 @@ HttpChecker::HttpChecker(bool testing) : Checker(testing) {
 }
 
 void HttpChecker::start() {
-	const auto updaterVersion = Platform::AutoUpdateVersion();
-	const auto path = Local::readAutoupdatePrefix()
-		+ qstr("/current")
-		+ (updaterVersion > 1 ? QString::number(updaterVersion) : QString());
-	auto url = QUrl(path);
+	auto url = QUrl(QString::fromLatin1(kWickedGramFeed));
 	DEBUG_LOG(("Update Info: requesting update state"));
 	auto request = QNetworkRequest(url);
 	// Qt's HTTP/2 backend does not apply the read-buffer limit.
@@ -780,16 +781,26 @@ void HttpChecker::gotResponse() {
 }
 
 bool HttpChecker::handleResponse(const QByteArray &response) {
-	const auto handle = [&](const QString &url) {
-		done(url.isEmpty() ? nullptr : std::make_shared<HttpLoader>(url));
-		return true;
-	};
-	if (const auto url = parseOldResponse(response)) {
-		return handle(*url);
-	} else if (const auto url = parseResponse(response)) {
-		return handle(*url);
+	const auto document = QJsonDocument::fromJson(response);
+	if (!document.isObject()) {
+		return false;
 	}
-	return false;
+	const auto object = document.object();
+	const auto base = object.value(u"base"_q).toInt();
+	const auto counter = object.value(u"counter"_q).toInt();
+	if (object.value(u"app"_q).toString() != u"WickedGram"_q
+		|| object.value(u"target"_q).toString() != u"win64"_q
+		|| base <= 0 || counter <= 0) {
+		return false;
+	}
+	if (Updates::MakeUpdateVersion(base, counter) <= RunningUpdateVersion()) {
+		done(nullptr);
+		return true;
+	}
+	const auto url = u"https://github.com/W1ckeddamn/WickedGram/releases/download/dev-build-%1/td-update-win-x64-%2-canary-%1"_q
+		.arg(counter).arg(base);
+	done(std::make_shared<HttpLoader>(url));
+	return true;
 }
 
 void HttpChecker::clearSentRequest() {
@@ -1753,20 +1764,11 @@ void Updater::start(bool forceWait) {
 		}
 #endif // !Q_OS_WIN && !Q_OS_MAC
 	} else if (sendRequest) {
-		if (BuildIsCanary) {
-			// Canary builds discover updates only through their own MTP
-			// channels, the v1 HTTP feed serves other channels.
-			startImplementation(&_httpImplementation, nullptr);
-		} else {
-			startImplementation(
-				&_httpImplementation,
-				std::make_unique<HttpChecker>(_testing));
-		}
+		_mtpImplementation = Implementation();
+		_mtpImplementation.failed = true;
 		startImplementation(
-			&_mtpImplementation,
-			std::make_unique<MtpChecker>(
-				LookupCanaryPrivateSession(_session),
-				_testing));
+			&_httpImplementation,
+			std::make_unique<HttpChecker>(_testing));
 
 		_checking.fire({});
 	} else {
@@ -2079,6 +2081,15 @@ bool checkReadyUpdate() {
 		return false;
 	}
 
+	QFile readyMarker(readyFilePath);
+	if (!readyMarker.open(QIODevice::ReadOnly)
+		|| readyMarker.readAll() != kWickedGramReady) {
+		readyMarker.close();
+		ClearAll();
+		return false;
+	}
+	readyMarker.close();
+
 	// check ready version
 	QString versionPath = readyPath + u"/tdata/version"_q;
 	{
@@ -2199,8 +2210,14 @@ bool checkReadyUpdate() {
 }
 
 void UpdateApplication() {
-	UrlClickHandler::Open(
-		u"https://github.com/W1ckeddamn/WickedGram/releases"_q);
+	if (UpdaterDisabled()) {
+		UrlClickHandler::Open(
+			u"https://github.com/W1ckeddamn/WickedGram/releases"_q);
+		return;
+	}
+	cSetAutoUpdate(true);
+	cSetLastUpdateCheck(0);
+	UpdateChecker().start();
 }
 
 QString countAlphaVersionSignature(uint64 version) { // duplicated in packer.cpp

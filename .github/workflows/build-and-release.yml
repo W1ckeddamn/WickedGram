@@ -20,7 +20,7 @@ on:
       build_type:
         description: 'Build Configuration'
         required: true
-        default: 'Release'
+        default: 'Debug'
         type: choice
         options:
           - Release
@@ -190,6 +190,11 @@ jobs:
             !${{ env.LibrariesPath }}\cache_keys\[qQ]t[_-]*
           key: ${{ runner.OS }}-x64-libs-v3-${{ env.CACHE_KEY }}
 
+      - name: Set WickedGram update counter
+        shell: bash
+        run: |
+          echo "WICKEDGRAM_BUILD_COUNTER=$((GITHUB_RUN_NUMBER * 100 + GITHUB_RUN_ATTEMPT))" >> "$GITHUB_ENV"
+
       - name: Configure CMake and Build
         run: |
           cd %TBUILD%\%REPO_NAME%\Telegram
@@ -203,9 +208,59 @@ jobs:
             -D CMAKE_CONFIGURATION_TYPES=${{ steps.config.outputs.build_config }} ^
             -D CMAKE_COMPILE_WARNING_AS_ERROR=OFF ^
             -D DESKTOP_APP_DISABLE_AUTOUPDATE=OFF ^
+            -D TDESKTOP_UPDATE_CHANNEL=canary-public ^
+            -D TDESKTOP_CANARY_COUNTER=%WICKEDGRAM_BUILD_COUNTER% ^
+            -D TDESKTOP_BUILD_UPDATE_TESTS=ON ^
             -D DESKTOP_APP_DISABLE_CRASH_REPORTS=OFF
 
           cmake --build ..\out --config ${{ steps.config.outputs.build_config }} --parallel
+
+      - name: Verify update trust and rejection rules
+        run: |
+          %TBUILD%\%REPO_NAME%\out\${{ steps.config.outputs.build_config }}\test_update_verify.exe
+          if errorlevel 1 exit /b 1
+          %TBUILD%\%REPO_NAME%\out\${{ steps.config.outputs.build_config }}\test_update_unpack.exe
+          if errorlevel 1 exit /b 1
+          %TBUILD%\%REPO_NAME%\out\${{ steps.config.outputs.build_config }}\test_updater_win.exe
+
+      - name: Create signed WickedGram update
+        if: github.ref == 'refs/heads/dev' && github.event_name != 'pull_request'
+        shell: pwsh
+        env:
+          SIGNING_KEY: ${{ secrets.WICKEDGRAM_UPDATE_SIGNING_KEY }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:SIGNING_KEY)) {
+            throw 'WICKEDGRAM_UPDATE_SIGNING_KEY is required to publish updates'
+          }
+          $out = Join-Path $env:TBUILD "$env:REPO_NAME/out/${{ steps.config.outputs.build_config }}"
+          $stage = Join-Path $env:RUNNER_TEMP 'wickedgram-update-stage'
+          $keyPath = Join-Path $env:RUNNER_TEMP 'wickedgram-signing.pem'
+          $dist = Join-Path $env:GITHUB_WORKSPACE 'dist'
+          New-Item -ItemType Directory -Force -Path $stage, $dist | Out-Null
+          Copy-Item -LiteralPath "$out/Telegram.exe", "$out/Updater.exe" -Destination $stage
+          if (Test-Path -LiteralPath "$out/agent.exe") {
+            Copy-Item -LiteralPath "$out/agent.exe" -Destination $stage
+          }
+          $versionHeader = Get-Content "$env:TBUILD/$env:REPO_NAME/Telegram/SourceFiles/core/version.h" -Raw
+          $baseVersion = [regex]::Match($versionHeader, 'AppVersion = (\d+);').Groups[1].Value
+          if (-not $baseVersion) { throw 'AppVersion not found' }
+          [IO.File]::WriteAllText($keyPath, $env:SIGNING_KEY, [Text.UTF8Encoding]::new($false))
+          $env:SIGNING_KEY = ''
+          Push-Location $dist
+          try {
+            $paths = @('-path', "$stage/Telegram.exe", '-path', "$stage/Updater.exe")
+            if (Test-Path -LiteralPath "$stage/agent.exe") { $paths += @('-path', "$stage/agent.exe") }
+            & "$out/Packer.exe" @paths -version $baseVersion -target win64 -channel canary-public -counter $env:WICKEDGRAM_BUILD_COUNTER -keys-loc "$env:TBUILD/$env:REPO_NAME/Telegram/Resources/update" -local-key $keyPath -local-key-id wickedgram-dev-1
+            if ($LASTEXITCODE -ne 0) { throw 'Signed update packing or verification failed' }
+            $package = "td-update-win-x64-$baseVersion-canary-$env:WICKEDGRAM_BUILD_COUNTER"
+            if (-not (Test-Path -LiteralPath $package)) { throw 'Update package missing' }
+            $feed = @{ app = 'WickedGram'; target = 'win64'; base = [int]$baseVersion; counter = [int]$env:WICKEDGRAM_BUILD_COUNTER }
+            [IO.File]::WriteAllText((Join-Path $dist 'update.json'), ($feed | ConvertTo-Json -Compress), [Text.UTF8Encoding]::new($false))
+          } finally {
+            Pop-Location
+            Remove-Item -LiteralPath $keyPath -Force
+          }
 
       - name: Package WickedGram
         id: package
@@ -265,6 +320,27 @@ jobs:
           name: ${{ steps.package.outputs.zip_name }}
           path: ${{ steps.package.outputs.zip_path }}
           retention-days: 14
+
+      - name: Publish WickedGram development update
+        if: github.ref == 'refs/heads/dev' && github.event_name != 'pull_request'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $repo = $env:GITHUB_REPOSITORY
+          $tag = "dev-build-$env:WICKEDGRAM_BUILD_COUNTER"
+          $packages = @(Get-ChildItem "$env:GITHUB_WORKSPACE/dist/td-update-win-x64-*-canary-$env:WICKEDGRAM_BUILD_COUNTER")
+          if ($packages.Count -ne 1) { throw 'Expected exactly one signed update' }
+          gh release create $tag $packages[0].FullName '${{ steps.package.outputs.zip_path }}' --repo $repo --target $env:GITHUB_SHA --prerelease --title "WickedGram dev #$env:WICKEDGRAM_BUILD_COUNTER" --notes 'Signed Windows x64 development update.'
+          if ($LASTEXITCODE -ne 0) { throw 'Update release publication failed' }
+          gh release view wickedgram-dev --repo $repo *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create wickedgram-dev --repo $repo --target $env:GITHUB_SHA --prerelease --title 'WickedGram development update feed' --notes 'Metadata for automatic development updates.'
+            if ($LASTEXITCODE -ne 0) { throw 'Update feed release creation failed' }
+          }
+          gh release upload wickedgram-dev "$env:GITHUB_WORKSPACE/dist/update.json" --repo $repo --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Update feed publication failed' }
 
       - name: Create GitHub Release
         if: ${{ startsWith(github.ref, 'refs/tags/v') }}

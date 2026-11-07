@@ -2959,6 +2959,7 @@ if (NOT DESKTOP_APP_DISABLE_AUTOUPDATE AND NOT build_macstore AND NOT build_wins
         )
 
         target_include_directories(Packer PRIVATE ${src_loc})
+        target_compile_definitions(Packer PRIVATE PACKER_DISABLE_PRIVATE)
 
         target_link_libraries(Packer
         PRIVATE
